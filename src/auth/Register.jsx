@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, Mail, Phone, MapPin, Navigation } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Navigation, CheckCircle2 } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
 import InputField from '../components/InputField';
 import PasswordField from '../components/PasswordField';
@@ -11,7 +11,7 @@ import { isValidEmail, isValidPhone, isStrongPassword } from '../utils/validator
 
 export default function Register() {
   const navigate = useNavigate();
-  
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -23,9 +23,9 @@ export default function Register() {
     city: '',
     pincode: '',
     latitude: null,
-    longitude: null
+    longitude: null,
   });
-  
+
   const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -34,7 +34,6 @@ export default function Register() {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    // Clear specific error when user types
     if (errors[e.target.name]) {
       setErrors({ ...errors, [e.target.name]: '' });
     }
@@ -45,22 +44,22 @@ export default function Register() {
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setFormData(prev => ({
+          setFormData((prev) => ({
             ...prev,
             latitude: position.coords.latitude,
-            longitude: position.coords.longitude
+            longitude: position.coords.longitude,
           }));
           setLocating(false);
         },
         (error) => {
-          console.error("Error detecting location", error);
+          console.error('Error detecting location', error);
           setLocating(false);
-          setErrors(prev => ({ ...prev, location: 'Failed to detect location. Please enter manually.' }));
+          setErrors((prev) => ({ ...prev, location: 'Failed to detect location. Please enter manually.' }));
         }
       );
     } else {
       setLocating(false);
-      setErrors(prev => ({ ...prev, location: 'Geolocation is not supported by your browser.' }));
+      setErrors((prev) => ({ ...prev, location: 'Geolocation is not supported by your browser.' }));
     }
   };
 
@@ -69,12 +68,12 @@ export default function Register() {
     if (!formData.name.trim()) newErrors.name = 'Name is required';
     if (!isValidEmail(formData.email)) newErrors.email = 'Invalid email address';
     if (!isValidPhone(formData.phone)) newErrors.phone = 'Invalid phone number';
-    if (!isStrongPassword(formData.password)) newErrors.password = 'Password must be at least 8 characters';
+    if (!isStrongPassword(formData.password)) newErrors.password = 'Password must be at least 6 characters';
     if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
     if (!formData.state.trim()) newErrors.state = 'State is required';
     if (!formData.district.trim()) newErrors.district = 'District is required';
     if (!formData.city.trim()) newErrors.city = 'City is required';
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -82,7 +81,7 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setApiError('');
-    
+
     if (!validateForm()) return;
 
     setLoading(true);
@@ -98,7 +97,7 @@ export default function Register() {
         city: formData.city,
         pincode: formData.pincode,
         latitude: formData.latitude,
-        longitude: formData.longitude
+        longitude: formData.longitude,
       });
       setSuccess(true);
       setTimeout(() => navigate('/login'), 2000);
@@ -112,20 +111,18 @@ export default function Register() {
   return (
     <AuthLayout title="Citizen Registration" subtitle="Join the Transparency Network">
       {success ? (
-        <div className="text-center space-y-4 py-8">
-          <div className="w-16 h-16 bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto">
-            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
+        <div className="space-y-4 py-10 text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-emerald-300/20 bg-emerald-400/12 text-emerald-200">
+            <CheckCircle2 className="h-8 w-8" />
           </div>
-          <h3 className="text-xl font-semibold text-zinc-100">Registration Successful!</h3>
-          <p className="text-zinc-400 text-sm">Redirecting to login...</p>
+          <h3 className="text-xl font-semibold text-slate-50">Registration Successful</h3>
+          <p className="text-sm text-slate-400">Redirecting to login...</p>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           <ErrorMessage message={apiError} />
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <InputField
               label="Full Name"
               name="name"
@@ -159,25 +156,34 @@ export default function Register() {
             error={errors.phone}
           />
 
-          <div className="pt-4 pb-2 border-t border-zinc-800">
-            <div className="flex justify-between items-center mb-4">
-              <h4 className="text-sm font-medium text-zinc-300">Location Details</h4>
-              <button 
-                type="button" 
+          <div className="rounded-[1.35rem] border border-white/8 bg-white/[0.03] px-4 py-4">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h4 className="text-sm font-semibold text-slate-200">Location Details</h4>
+                <p className="mt-1 text-xs text-slate-400">Add your area so the app can surface relevant projects faster.</p>
+              </div>
+              <Button
+                type="button"
                 onClick={handleDetectLocation}
                 disabled={locating}
-                className="text-xs flex items-center gap-1 text-emerald-400 hover:text-emerald-300 disabled:opacity-50"
+                variant="outline"
+                size="sm"
+                fullWidth={false}
               >
-                <Navigation className="w-3 h-3" />
+                <Navigation className="h-4 w-4" />
                 {locating ? 'Detecting...' : 'Auto-detect GPS'}
-              </button>
+              </Button>
             </div>
-            {errors.location && <p className="text-red-400 text-xs mb-2">{errors.location}</p>}
+
+            {errors.location && <p className="mb-3 text-xs text-rose-300">{errors.location}</p>}
             {formData.latitude && formData.longitude && (
-              <p className="text-emerald-400 text-xs mb-4">✓ GPS Coordinates saved</p>
+              <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-400/10 px-3 py-1 text-xs font-medium text-emerald-200">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                GPS coordinates saved
+              </p>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <InputField
                 label="State"
                 name="state"
@@ -217,13 +223,13 @@ export default function Register() {
             </div>
           </div>
 
-          <div className="pt-4 border-t border-zinc-800 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 border-t border-white/8 pt-4 md:grid-cols-2">
             <PasswordField
               label="Password"
               name="password"
               value={formData.password}
               onChange={handleChange}
-              placeholder="••••••••"
+              placeholder="........"
               error={errors.password}
             />
 
@@ -232,18 +238,18 @@ export default function Register() {
               name="confirmPassword"
               value={formData.confirmPassword}
               onChange={handleChange}
-              placeholder="••••••••"
+              placeholder="........"
               error={errors.confirmPassword}
             />
           </div>
 
-          <Button type="submit" isLoading={loading} className="mt-6 w-full">
+          <Button type="submit" isLoading={loading} className="mt-6">
             Create Account
           </Button>
-          
-          <div className="text-center text-sm text-zinc-500 mt-4">
+
+          <div className="mt-4 text-center text-sm text-slate-400">
             Already have an account?{' '}
-            <Link to="/login" className="text-emerald-400 hover:text-emerald-300 transition-colors">
+            <Link to="/login" className="font-medium text-teal-200 transition-colors hover:text-white">
               Sign In
             </Link>
           </div>

@@ -5,6 +5,16 @@ export const createProject = async (projectData) => {
   return response.data;
 };
 
+export const applyToProject = async (projectId, payload) => {
+  const response = await apiClient.post(`/projects/${projectId}/apply`, payload);
+  return response.data;
+};
+
+export const approveProjectApplication = async (applicationId) => {
+  const response = await apiClient.post(`/projects/applications/${applicationId}/approve`);
+  return response.data;
+};
+
 export const getProjects = async () => {
   const response = await apiClient.get('/projects');
   return response.data;

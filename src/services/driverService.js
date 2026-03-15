@@ -25,6 +25,11 @@ export const completeDelivery = async (id) => {
   return response.data;
 };
 
+export const verifyDelivery = async (passport_id, arrival_lat, arrival_lng) => {
+  const response = await apiClient.post('/deliveries/verify', { passport_id, arrival_lat, arrival_lng });
+  return response.data;
+};
+
 export const sendTrackingData = async (trackingData) => {
   const response = await apiClient.post('/tracking', trackingData);
   return response.data;
@@ -36,6 +41,7 @@ const driverService = {
   startDelivery,
   markArrived,
   completeDelivery,
+  verifyDelivery,
   sendTrackingData
 };
 

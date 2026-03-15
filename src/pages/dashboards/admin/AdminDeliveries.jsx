@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
+import { Package, Truck, Search, Filter } from 'lucide-react';
 import DashboardLayout from '../../../components/DashboardLayout';
-import { Navigation, Package, Truck, Search, Filter } from 'lucide-react';
 import useAdminStore from '../../../store/adminStore';
 import Card from '../../../components/Card';
 import StatusBadge from '../../../components/StatusBadge';
@@ -14,19 +14,18 @@ export default function AdminDeliveries() {
   }, [fetchDeliveries]);
 
   return (
-    <DashboardLayout 
-      title="Material Deliveries" 
+    <DashboardLayout
+      title="Material Deliveries"
       roleName="Administrator"
       badgeColorClass="bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
     >
       <div className="space-y-6">
-        {/* Header Actions */}
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
           <div className="relative w-full sm:w-96">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-            <input 
-              type="text" 
-              placeholder="Search deliveries by ID, material, project..." 
+            <input
+              type="text"
+              placeholder="Search deliveries by ID, material, project..."
               className="w-full bg-zinc-900 border border-zinc-800 rounded-lg py-2 pl-10 pr-4 text-sm text-zinc-200 focus:outline-none focus:border-emerald-500 transition-colors"
             />
           </div>
@@ -41,7 +40,7 @@ export default function AdminDeliveries() {
         <Card noPadding>
           {loading ? (
             <div className="p-12 text-center">
-              <div className="animate-spin w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+              <div className="animate-spin w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full mx-auto mb-4" />
               <p className="text-zinc-400 text-sm">Loading deliveries...</p>
             </div>
           ) : error ? (
@@ -85,19 +84,19 @@ export default function AdminDeliveries() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <p className="text-sm text-zinc-300">{delivery.project_name || `Project #${delivery.project_id}`}</p>
-                          <p className="text-xs text-zinc-500 mt-0.5">Truck ID: {delivery.truck_id}</p>
+                          <p className="text-xs text-zinc-500 mt-0.5">Truck: {delivery.truck_number || 'Pending assignment'}</p>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <p className="text-sm font-mono text-zinc-200">{delivery.volume} {delivery.unit || 'm³'}</p>
+                          <p className="text-sm font-mono text-zinc-200">{delivery.volume} units</p>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <StatusBadge status={delivery.status} />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <p className="text-sm text-zinc-500">
-                            {new Date(delivery.timestamp).toLocaleString(undefined, {
+                            {new Date(delivery.dispatch_time || delivery.timestamp).toLocaleString(undefined, {
                               dateStyle: 'medium',
-                              timeStyle: 'short'
+                              timeStyle: 'short',
                             })}
                           </p>
                         </td>

@@ -1,47 +1,35 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../../components/DashboardLayout';
-import { FolderKanban, MapPin, Calendar, Activity, ArrowLeft, Truck, AlertTriangle } from 'lucide-react';
-import useContractorStore from '../../../store/contractorStore';
+import { MapPin, Calendar, Activity, ArrowLeft, Truck, AlertTriangle } from 'lucide-react';
 import { useAuthStore } from '../../../store/authStore';
 import Card from '../../../components/Card';
 import Button from '../../../components/Button';
+import StatusBadge from '../../../components/StatusBadge';
+import { getProjectById } from '../../../services/projectService';
 
 export default function ContractorProjectDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const { 
-    contractorProjects, 
-    deliveries, 
-    projectReports,
-    fetchContractorProjects, 
-    fetchDeliveries,
-    fetchProjectReports,
-    loading 
-  } = useContractorStore();
+  const [projectData, setProjectData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user?.id) {
-      if (contractorProjects.length === 0) {
-        fetchContractorProjects();
-      }
-      fetchDeliveries();
-      fetchProjectReports(id);
+    if (!user?.id || !id) {
+      return;
     }
-  }, [user?.id, id, fetchContractorProjects, fetchDeliveries, fetchProjectReports, contractorProjects.length]);
 
-  const project = useMemo(() => {
-    return contractorProjects.find(p => p.id === id);
-  }, [contractorProjects, id]);
+    setLoading(true);
+    getProjectById(id)
+      .then((response) => setProjectData(response.data))
+      .finally(() => setLoading(false));
+  }, [user?.id, id]);
 
-  const projectDeliveries = useMemo(() => {
-    return deliveries.filter(d => d.project_id === id);
-  }, [deliveries, id]);
-
-  const reports = useMemo(() => {
-    return projectReports.filter(r => r.project_id === id);
-  }, [projectReports, id]);
+  const project = projectData?.project;
+  const boq = projectData?.boq;
+  const projectDeliveries = useMemo(() => projectData?.deliveries || [], [projectData]);
+  const reports = useMemo(() => projectData?.reports || [], [projectData]);
 
   if (loading && !project) {
     return (
@@ -67,27 +55,21 @@ export default function ContractorProjectDetail() {
   }
 
   return (
-    <DashboardLayout 
-      title="Project Details" 
+    <DashboardLayout
+      title="Project Details"
       roleName="Contractor"
       badgeColorClass="bg-blue-500/10 text-blue-500 border-blue-500/20"
     >
       <div className="space-y-6">
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={() => navigate('/contractor/projects')}
             className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h2 className="text-2xl font-bold text-zinc-100">{project.name}</h2>
-          <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider border ${
-            project.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
-            project.status === 'ONGOING' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
-            'bg-zinc-500/10 text-zinc-500 border-zinc-500/20'
-          }`}>
-            {project.status}
-          </span>
+          <StatusBadge status={project.status} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -106,9 +88,10 @@ export default function ContractorProjectDetail() {
                     <Activity className="w-5 h-5 text-zinc-500 mt-0.5" />
                     <div>
                       <p className="text-sm font-medium text-zinc-200">Road Specifications</p>
-                      <p className="text-sm text-zinc-400">Length: {project.length} km</p>
-                      <p className="text-sm text-zinc-400">Width: {project.width} m</p>
+                      <p className="text-sm text-zinc-400">Length: {project.road_length} km</p>
+                      <p className="text-sm text-zinc-400">Width: {project.road_width} m</p>
                       <p className="text-sm text-zinc-400">Type: {project.road_type}</p>
+                      <p className="text-sm text-zinc-400">Soil: {project.soil_type}</p>
                     </div>
                   </div>
                 </div>
@@ -118,6 +101,7 @@ export default function ContractorProjectDetail() {
                     <div>
                       <p className="text-sm font-medium text-zinc-200">Timeline</p>
                       <p className="text-sm text-zinc-400">Status: {project.status}</p>
+                      <p className="text-sm text-zinc-400">Created: {new Date(project.created_at).toLocaleDateString()}</p>
                     </div>
                   </div>
                 </div>
@@ -128,20 +112,24 @@ export default function ContractorProjectDetail() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl text-center">
                   <p className="text-xs text-zinc-500 uppercase tracking-wider font-semibold mb-1">Bitumen</p>
-                  <p className="text-xl font-bold text-zinc-200">{project.bitumen || 0} t</p>
+                  <p className="text-xl font-bold text-zinc-200">{boq?.bitumen || project.bitumen_required || 0} t</p>
                 </div>
                 <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl text-center">
                   <p className="text-xs text-zinc-500 uppercase tracking-wider font-semibold mb-1">Aggregate</p>
-                  <p className="text-xl font-bold text-zinc-200">{project.aggregate || 0} t</p>
+                  <p className="text-xl font-bold text-zinc-200">{boq?.aggregate || project.aggregate_required || 0} t</p>
                 </div>
                 <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl text-center">
                   <p className="text-xs text-zinc-500 uppercase tracking-wider font-semibold mb-1">Cement</p>
-                  <p className="text-xl font-bold text-zinc-200">{project.cement || 0} t</p>
+                  <p className="text-xl font-bold text-zinc-200">{boq?.cement || project.cement_required || 0} t</p>
                 </div>
                 <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl text-center">
                   <p className="text-xs text-zinc-500 uppercase tracking-wider font-semibold mb-1">Sand</p>
-                  <p className="text-xl font-bold text-zinc-200">{project.sand || 0} t</p>
+                  <p className="text-xl font-bold text-zinc-200">{boq?.sand || project.sand_required || 0} t</p>
                 </div>
+              </div>
+              <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-right">
+                <p className="text-xs uppercase tracking-wider text-emerald-200">Estimated Cost</p>
+                <p className="mt-1 text-xl font-semibold text-emerald-100">Rs {Number(boq?.estimated_cost || project.estimated_budget || 0).toLocaleString()}</p>
               </div>
               <div className="mt-6 flex justify-end">
                 <Button onClick={() => navigate('/contractor/material-requests')}>
@@ -155,22 +143,16 @@ export default function ContractorProjectDetail() {
             <Card title="Delivery Progress">
               <div className="space-y-4">
                 {projectDeliveries.length > 0 ? (
-                  projectDeliveries.slice(0, 5).map(delivery => (
+                  projectDeliveries.slice(0, 5).map((delivery) => (
                     <div key={delivery.id} className="flex items-center justify-between p-3 bg-zinc-900 border border-zinc-800 rounded-lg">
                       <div className="flex items-center gap-3">
                         <Truck className="w-4 h-4 text-blue-500" />
                         <div>
                           <p className="text-sm font-medium text-zinc-200">{delivery.material_type}</p>
-                          <p className="text-xs text-zinc-500">{delivery.volume} tons</p>
+                          <p className="text-xs text-zinc-500">{delivery.volume} units</p>
                         </div>
                       </div>
-                      <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider border ${
-                        delivery.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
-                        delivery.status === 'IN_TRANSIT' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
-                        'bg-zinc-500/10 text-zinc-500 border-zinc-500/20'
-                      }`}>
-                        {delivery.status}
-                      </span>
+                      <StatusBadge status={delivery.status} />
                     </div>
                   ))
                 ) : (
@@ -187,7 +169,7 @@ export default function ContractorProjectDetail() {
             <Card title="Citizen Complaints">
               <div className="space-y-4">
                 {reports.length > 0 ? (
-                  reports.slice(0, 5).map(report => (
+                  reports.slice(0, 5).map((report) => (
                     <div key={report.id} className="p-3 bg-zinc-900 border border-zinc-800 rounded-lg">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
@@ -196,12 +178,7 @@ export default function ContractorProjectDetail() {
                             {new Date(report.created_at).toLocaleDateString()}
                           </span>
                         </div>
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${
-                          report.status === 'RESOLVED' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
-                          'bg-red-500/10 text-red-500 border-red-500/20'
-                        }`}>
-                          {report.status}
-                        </span>
+                        <StatusBadge status={report.status} />
                       </div>
                       <p className="text-sm text-zinc-300 line-clamp-2">{report.description}</p>
                     </div>

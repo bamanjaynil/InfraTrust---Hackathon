@@ -1,6 +1,6 @@
 const UserModel = require('../models/userModel');
 const catchAsync = require('../utils/catchAsync');
-const AppError = require('../utils/appError');
+const AppError = require('../utils/AppError');
 
 exports.getUsersByRole = catchAsync(async (req, res, next) => {
   const { role } = req.query;

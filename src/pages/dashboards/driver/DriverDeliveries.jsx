@@ -1,12 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../../components/DashboardLayout';
-import { Navigation, Truck, ExternalLink, Search } from 'lucide-react';
+import { Truck, ExternalLink, Search } from 'lucide-react';
 import useDriverStore from '../../../store/driverStore';
 import { useAuthStore } from '../../../store/authStore';
 import Card from '../../../components/Card';
 import StatusBadge from '../../../components/StatusBadge';
-import { useState } from 'react';
 
 export default function DriverDeliveries() {
   const navigate = useNavigate();
@@ -20,19 +19,19 @@ export default function DriverDeliveries() {
     }
   }, [user?.id, fetchDriverDeliveries]);
 
-  const activeDeliveries = Array.isArray(driverDeliveries) 
-    ? driverDeliveries.filter(d => d.status !== 'COMPLETED')
+  const activeDeliveries = Array.isArray(driverDeliveries)
+    ? driverDeliveries.filter((delivery) => !['COMPLETED', 'VERIFIED'].includes(delivery.status))
     : [];
 
-  const filteredDeliveries = activeDeliveries.filter(d => 
-    d.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    d.project_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    d.material_type?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredDeliveries = activeDeliveries.filter((delivery) =>
+    delivery.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    delivery.project_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    delivery.material_type?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-    <DashboardLayout 
-      title="Active Deliveries" 
+    <DashboardLayout
+      title="Active Deliveries"
       roleName="Driver"
       badgeColorClass="bg-blue-500/10 text-blue-500 border-blue-500/20"
     >
@@ -40,9 +39,9 @@ export default function DriverDeliveries() {
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
           <div className="relative w-full sm:w-96">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-            <input 
-              type="text" 
-              placeholder="Search by ID, project, or material..." 
+            <input
+              type="text"
+              placeholder="Search by ID, project, or material..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full bg-zinc-900 border border-zinc-800 rounded-lg py-2 pl-10 pr-4 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 transition-colors"
@@ -53,7 +52,7 @@ export default function DriverDeliveries() {
         <Card noPadding>
           {loading ? (
             <div className="p-12 text-center">
-              <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+              <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4" />
               <p className="text-zinc-400 text-sm">Loading deliveries...</p>
             </div>
           ) : error ? (
@@ -95,15 +94,15 @@ export default function DriverDeliveries() {
                           <p className="text-sm text-zinc-400">{delivery.material_type}</p>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-zinc-400">
-                          {delivery.volume} m³
+                          {delivery.volume} units
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex flex-col">
                             <span className="text-sm text-zinc-300">
-                              {delivery.timestamp ? new Date(delivery.timestamp).toLocaleDateString() : 'N/A'}
+                              {delivery.dispatch_time ? new Date(delivery.dispatch_time).toLocaleDateString() : 'N/A'}
                             </span>
                             <span className="text-xs text-zinc-500">
-                              {delivery.timestamp ? new Date(delivery.timestamp).toLocaleTimeString() : ''}
+                              {delivery.dispatch_time ? new Date(delivery.dispatch_time).toLocaleTimeString() : ''}
                             </span>
                           </div>
                         </td>
@@ -111,7 +110,7 @@ export default function DriverDeliveries() {
                           <StatusBadge status={delivery.status} />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <button 
+                          <button
                             onClick={() => navigate(`/driver/deliveries/${delivery.id}`)}
                             className="p-2 text-zinc-500 hover:text-blue-500 hover:bg-blue-500/10 rounded-lg transition-colors"
                           >

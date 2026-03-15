@@ -1,7 +1,8 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../../components/DashboardLayout';
-import { Navigation, Truck, MapPin, Clock, CheckCircle, AlertCircle, Play, Map } from 'lucide-react';
+import { Truck, MapPin, Clock, CheckCircle, AlertCircle, Play, Map } from 'lucide-react';
+import { QrReader } from 'react-qr-reader';
 import useDriverStore from '../../../store/driverStore';
 import Card from '../../../components/Card';
 import Button from '../../../components/Button';
@@ -10,41 +11,49 @@ import StatusBadge from '../../../components/StatusBadge';
 export default function DriverDeliveryDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { activeDelivery, fetchDeliveryById, startDelivery, markArrived, completeDelivery, updateTracking, trackingStatus, loading, error } = useDriverStore();
+  const {
+    activeDelivery,
+    fetchDeliveryById,
+    startDelivery,
+    markArrived,
+    verifyDelivery,
+    updateTracking,
+    trackingStatus,
+    loading,
+    error,
+  } = useDriverStore();
   const [locationError, setLocationError] = useState(null);
+  const [qrScanResult, setQrScanResult] = useState(null);
+  const [qrError, setQrError] = useState(null);
+  const [isVerifying, setIsVerifying] = useState(false);
   const trackingInterval = useRef(null);
 
   useEffect(() => {
     fetchDeliveryById(id);
   }, [id, fetchDeliveryById]);
 
-  // GPS Tracking Logic
   useEffect(() => {
-    if (trackingStatus === 'TRACKING' && activeDelivery) {
+    if (trackingStatus === 'TRACKING' && activeDelivery?.truck_number) {
       trackingInterval.current = setInterval(() => {
-        if ("geolocation" in navigator) {
+        if ('geolocation' in navigator) {
           navigator.geolocation.getCurrentPosition(
             (position) => {
-              const { latitude, longitude } = position.coords;
               updateTracking({
-                truck_id: activeDelivery.truck_id,
-                latitude,
-                longitude,
-                timestamp: new Date().toISOString()
+                truck_id: activeDelivery.truck_number,
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                timestamp: new Date().toISOString(),
               });
               setLocationError(null);
             },
-            (err) => {
-              console.error('Geolocation error:', err);
+            () => {
               setLocationError('Unable to retrieve location. Please check GPS settings.');
             }
           );
         }
-      }, 30000); // Every 30 seconds
-    } else {
-      if (trackingInterval.current) {
-        clearInterval(trackingInterval.current);
-      }
+      }, 30000);
+    } else if (trackingInterval.current) {
+      clearInterval(trackingInterval.current);
     }
 
     return () => {
@@ -55,34 +64,80 @@ export default function DriverDeliveryDetail() {
   }, [trackingStatus, activeDelivery, updateTracking]);
 
   const handleStart = async () => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const { latitude, longitude } = position.coords;
-          await startDelivery(id);
-          // Initial tracking update
-          updateTracking({
-            truck_id: activeDelivery.truck_id,
-            latitude,
-            longitude,
-            timestamp: new Date().toISOString()
-          });
-        },
-        (err) => {
-          console.error('Geolocation error:', err);
-          alert('GPS location is required to start delivery.');
-        }
-      );
-    } else {
+    if (!('geolocation' in navigator)) {
       alert('Geolocation is not supported by your browser.');
+      return;
     }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        await startDelivery(id);
+        updateTracking({
+          truck_id: activeDelivery.truck_number,
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          timestamp: new Date().toISOString(),
+        });
+      },
+      () => {
+        alert('GPS location is required to start delivery.');
+      }
+    );
+  };
+
+  const onQrResult = (result, scannerError) => {
+    if (result) {
+      const text = result?.text || result;
+      try {
+        const payload = JSON.parse(text);
+        setQrScanResult(payload.passport_id || text);
+      } catch {
+        setQrScanResult(text);
+      }
+      setQrError(null);
+    }
+
+    if (scannerError) {
+      setQrError('QR read error. Move camera closer or adjust lighting.');
+    }
+  };
+
+  const handleVerify = async () => {
+    if (!qrScanResult) {
+      alert('Please scan the passport QR code first.');
+      return;
+    }
+
+    if (!('geolocation' in navigator)) {
+      alert('Geolocation is not supported by your browser.');
+      return;
+    }
+
+    setIsVerifying(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          await verifyDelivery(qrScanResult, position.coords.latitude, position.coords.longitude);
+          await fetchDeliveryById(id);
+          alert('Delivery verified');
+        } catch {
+          alert('Verification failed');
+        } finally {
+          setIsVerifying(false);
+        }
+      },
+      () => {
+        alert('GPS location is required to verify delivery.');
+        setIsVerifying(false);
+      }
+    );
   };
 
   if (loading && !activeDelivery) {
     return (
       <DashboardLayout title="Delivery Details" roleName="Driver">
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+          <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full" />
         </div>
       </DashboardLayout>
     );
@@ -104,13 +159,12 @@ export default function DriverDeliveryDetail() {
   }
 
   return (
-    <DashboardLayout 
-      title={`Delivery #${activeDelivery.id.substring(0, 8)}`} 
+    <DashboardLayout
+      title={`Delivery #${activeDelivery.id.substring(0, 8)}`}
       roleName="Driver"
       badgeColorClass="bg-blue-500/10 text-blue-500 border-blue-500/20"
     >
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Info */}
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <div className="flex justify-between items-start mb-6">
@@ -120,7 +174,7 @@ export default function DriverDeliveryDetail() {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-zinc-100">{activeDelivery.material_type}</h3>
-                  <p className="text-zinc-500 text-sm">Volume: {activeDelivery.volume} m³</p>
+                  <p className="text-zinc-500 text-sm">Volume: {activeDelivery.volume} units</p>
                 </div>
               </div>
               <StatusBadge status={activeDelivery.status} />
@@ -143,7 +197,7 @@ export default function DriverDeliveryDetail() {
                   <div>
                     <p className="text-xs text-zinc-500 uppercase font-bold tracking-wider">Dispatch Time</p>
                     <p className="text-sm text-zinc-200 font-medium">
-                      {new Date(activeDelivery.timestamp).toLocaleString()}
+                      {new Date(activeDelivery.dispatch_time || activeDelivery.timestamp).toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -158,48 +212,49 @@ export default function DriverDeliveryDetail() {
             )}
           </Card>
 
-          {/* Action Buttons */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {activeDelivery.status === 'ASSIGNED' && (
-              <Button 
-                onClick={handleStart} 
-                loading={loading}
-                className="bg-blue-600 hover:bg-blue-700 h-16 text-lg"
-              >
+              <Button onClick={handleStart} loading={loading} className="bg-blue-600 hover:bg-blue-700 h-16 text-lg">
                 <Play className="w-5 h-5 mr-2" />
                 Start Delivery
               </Button>
             )}
             {activeDelivery.status === 'IN_TRANSIT' && (
-              <Button 
-                onClick={() => markArrived(id)} 
-                loading={loading}
-                className="bg-purple-600 hover:bg-purple-700 h-16 text-lg"
-              >
+              <Button onClick={() => markArrived(id)} loading={loading} className="bg-purple-600 hover:bg-purple-700 h-16 text-lg">
                 <MapPin className="w-5 h-5 mr-2" />
                 Mark Arrived
               </Button>
             )}
             {activeDelivery.status === 'ARRIVED' && (
-              <Button 
-                onClick={() => completeDelivery(id)} 
-                loading={loading}
-                className="bg-emerald-600 hover:bg-emerald-700 h-16 text-lg"
-              >
-                <CheckCircle className="w-5 h-5 mr-2" />
-                Complete Delivery
-              </Button>
+              <div className="space-y-3">
+                <Card title="QR Verification" noPadding>
+                  <div className="p-4">
+                    <p className="text-sm text-zinc-400 mb-2">Scan the material passport QR code upon arrival to verify delivery.</p>
+                    <div className="bg-zinc-900 border border-zinc-800 p-3 rounded-lg">
+                      <QrReader
+                        onResult={onQrResult}
+                        constraints={{ facingMode: 'environment' }}
+                        videoStyle={{ width: '100%', borderRadius: '8px' }}
+                      />
+                      {qrError && <p className="mt-2 text-xs text-red-400">{qrError}</p>}
+                      {qrScanResult && <p className="mt-2 text-xs text-emerald-400">Scanned passport ID: {qrScanResult}</p>}
+                      <Button onClick={handleVerify} loading={isVerifying} className="mt-3 w-full">
+                        Verify Delivery
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              </div>
             )}
-            {activeDelivery.status === 'COMPLETED' && (
+            {(activeDelivery.status === 'VERIFIED' || activeDelivery.status === 'COMPLETED') && (
               <div className="col-span-full bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-xl flex items-center justify-center gap-3 text-emerald-500">
                 <CheckCircle className="w-5 h-5" />
-                <span className="font-bold">Delivery Successfully Completed</span>
+                <span className="font-bold">Delivery verified</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Sidebar Info */}
         <div className="space-y-6">
           <Card title="Vehicle Info">
             <div className="flex items-center gap-4 p-3 bg-zinc-900 rounded-lg border border-zinc-800">
@@ -208,7 +263,7 @@ export default function DriverDeliveryDetail() {
               </div>
               <div>
                 <p className="text-xs text-zinc-500 uppercase font-bold tracking-wider">Truck Number Plate</p>
-                <p className="text-lg font-mono font-bold text-zinc-100">{activeDelivery.truck_id}</p>
+                <p className="text-lg font-mono font-bold text-zinc-100">{activeDelivery.truck_number || 'Pending assignment'}</p>
               </div>
             </div>
           </Card>
@@ -218,7 +273,7 @@ export default function DriverDeliveryDetail() {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-zinc-500">Live GPS</span>
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${trackingStatus === 'TRACKING' ? 'bg-emerald-500 animate-pulse' : 'bg-zinc-700'}`}></div>
+                  <div className={`w-2 h-2 rounded-full ${trackingStatus === 'TRACKING' ? 'bg-emerald-500 animate-pulse' : 'bg-zinc-700'}`} />
                   <span className={`text-xs font-bold uppercase ${trackingStatus === 'TRACKING' ? 'text-emerald-500' : 'text-zinc-500'}`}>
                     {trackingStatus === 'TRACKING' ? 'Active' : 'Inactive'}
                   </span>

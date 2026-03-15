@@ -23,8 +23,8 @@ export default function DriverDashboard() {
     const safeDeliveries = Array.isArray(driverDeliveries) ? driverDeliveries : [];
     return {
       active: safeDeliveries.filter(d => d.status === 'ASSIGNED' || d.status === 'IN_TRANSIT' || d.status === 'ARRIVED').length,
-      completed: safeDeliveries.filter(d => d.status === 'COMPLETED').length,
-      truck: safeDeliveries.length > 0 ? safeDeliveries[0].truck_id : 'N/A'
+      completed: safeDeliveries.filter(d => d.status === 'COMPLETED' || d.status === 'VERIFIED').length,
+      truck: safeDeliveries.length > 0 ? safeDeliveries[0].truck_number : 'N/A'
     };
   }, [driverDeliveries]);
 

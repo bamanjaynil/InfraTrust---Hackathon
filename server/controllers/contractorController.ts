@@ -2,73 +2,66 @@ import { Request, Response } from 'express';
 import db from '../db.js';
 
 export const recalculateContractorScore = (contractorId: string) => {
-  try {
-    // 1. Get project stats
-    const projects = db.prepare('SELECT status FROM projects WHERE contractor_id = ?').all(contractorId) as any[];
-    const totalProjects = projects.length;
-    const completedProjects = projects.filter(p => p.status === 'COMPLETED').length;
+  const deliveryStats = db.prepare(`
+    SELECT
+      COUNT(*) AS total,
+      SUM(CASE WHEN status IN ('VERIFIED', 'COMPLETED') THEN 1 ELSE 0 END) AS successful
+    FROM deliveries
+    WHERE contractor_id = ?
+  `).get(contractorId) as any;
 
-    // 2. Get delivery stats
-    const deliveries = db.prepare(`
-      SELECT d.status 
-      FROM deliveries d
-      JOIN projects p ON d.project_id = p.id
-      WHERE p.contractor_id = ?
-    `).all(contractorId) as any[];
-    const totalDeliveries = deliveries.length;
-    const successfulDeliveries = deliveries.filter(d => d.status === 'COMPLETED').length;
+  const projectStats = db.prepare(`
+    SELECT
+      COUNT(*) AS total,
+      SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END) AS completed
+    FROM projects
+    WHERE contractor_id = ?
+  `).get(contractorId) as any;
 
-    // 3. Get reports stats
-    const reports = db.prepare(`
-      SELECT r.status 
-      FROM reports r
-      JOIN projects p ON r.project_id = p.id
-      WHERE p.contractor_id = ?
-    `).all(contractorId) as any[];
-    const totalReports = reports.length;
-    const resolvedReports = reports.filter(r => r.status === 'RESOLVED').length;
+  const reportStats = db.prepare(`
+    SELECT COUNT(*) AS unresolved
+    FROM reports r
+    JOIN projects p ON p.id = r.project_id
+    WHERE p.contractor_id = ? AND r.status != 'RESOLVED'
+  `).get(contractorId) as any;
 
-    // Calculate metrics
-    const deliveryAccuracy = totalDeliveries > 0 ? (successfulDeliveries / totalDeliveries) * 100 : 100;
-    const complaints = totalReports;
-    const completionRate = totalProjects > 0 ? (completedProjects / totalProjects) * 100 : 100;
-    
-    // Simple trust score formula
-    // 40% delivery accuracy, 40% completion rate, -5% per unresolved complaint (max -20%)
-    const unresolvedComplaints = totalReports - resolvedReports;
-    const complaintPenalty = Math.min(unresolvedComplaints * 5, 20);
-    
-    const infraTrustScore = (deliveryAccuracy * 0.4) + (completionRate * 0.4) + (20 - complaintPenalty);
+  const deliveryAccuracy = deliveryStats.total ? (deliveryStats.successful / deliveryStats.total) * 100 : 100;
+  const completionRate = projectStats.total ? (projectStats.completed / projectStats.total) * 100 : 100;
+  const unresolved = reportStats.unresolved || 0;
+  const infraTrustScore = Math.max(0, Math.min(100, deliveryAccuracy * 0.45 + completionRate * 0.4 + (15 - unresolved * 3)));
 
-    // Update or Insert
-    const upsert = db.prepare(`
-      INSERT INTO contractor_scores (contractor_id, delivery_accuracy, complaints, durability, infra_trust_score)
-      VALUES (?, ?, ?, ?, ?)
-      ON CONFLICT(contractor_id) DO UPDATE SET
-        delivery_accuracy = excluded.delivery_accuracy,
-        complaints = excluded.complaints,
-        infra_trust_score = excluded.infra_trust_score
-    `);
-    
-    upsert.run(contractorId, deliveryAccuracy, complaints, 100, infraTrustScore);
-    
-    return infraTrustScore;
-  } catch (error) {
-    console.error('Error recalculating contractor score:', error);
-    return null;
-  }
+  db.prepare(`
+    INSERT INTO contractor_scores (contractor_id, delivery_accuracy, complaints, durability, infra_trust_score, updated_at)
+    VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(contractor_id) DO UPDATE SET
+      delivery_accuracy = excluded.delivery_accuracy,
+      complaints = excluded.complaints,
+      durability = excluded.durability,
+      infra_trust_score = excluded.infra_trust_score,
+      updated_at = CURRENT_TIMESTAMP
+  `).run(contractorId, deliveryAccuracy, unresolved, completionRate, infraTrustScore);
+
+  return infraTrustScore;
 };
 
 export const getContractors = (req: Request, res: Response) => {
   try {
+    if (req.query.role) {
+      return getUsersByRole(req, res);
+    }
+
     const contractors = db.prepare(`
-      SELECT u.id, u.name, u.email, s.delivery_accuracy, s.complaints, s.durability, s.infra_trust_score
+      SELECT
+        u.id, u.name, u.email, u.phone, u.city, u.district, u.state,
+        COALESCE(cs.delivery_accuracy, 100) AS delivery_accuracy,
+        COALESCE(cs.complaints, 0) AS complaints,
+        COALESCE(cs.durability, 100) AS durability,
+        COALESCE(cs.infra_trust_score, 100) AS infra_trust_score
       FROM users u
-      LEFT JOIN contractor_scores s ON u.id = s.contractor_id
+      LEFT JOIN contractor_scores cs ON cs.contractor_id = u.id
       WHERE u.role = 'CONTRACTOR'
+      ORDER BY u.name
     `).all();
-    
-    // Optionally trigger recalculation for all if needed, but let's just return for now
     res.json({ status: 'success', contractors });
   } catch (error) {
     console.error('Error fetching contractors:', error);
@@ -79,16 +72,13 @@ export const getContractors = (req: Request, res: Response) => {
 export const getUsersByRole = (req: Request, res: Response) => {
   try {
     const { role } = req.query;
-    let query = 'SELECT id, name, email, role FROM users';
-    let params: any[] = [];
-    if (role) {
-      query += ' WHERE role = ?';
-      params.push(role);
-    }
-    const users = db.prepare(query).all(...params);
+    const query = role
+      ? 'SELECT id, name, email, phone, role, city, district, state FROM users WHERE role = ? ORDER BY name'
+      : 'SELECT id, name, email, phone, role, city, district, state FROM users ORDER BY name';
+    const users = role ? db.prepare(query).all(role) : db.prepare(query).all();
     res.json({ status: 'success', data: { users } });
   } catch (error) {
-    console.error('Error fetching users by role:', error);
+    console.error('Error fetching users:', error);
     res.status(500).json({ status: 'error', message: 'Failed to fetch users' });
   }
 };

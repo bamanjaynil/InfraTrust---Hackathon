@@ -6,17 +6,18 @@ import { getAreaProjects, getNearbyProjects, getAllProjects } from '../../../ser
 import DashboardLayout from '../../../components/DashboardLayout';
 import ProjectCard from '../../../components/ProjectCard';
 import { MapPin, Navigation, Globe, Search, Filter, AlertCircle } from 'lucide-react';
+import Button from '../../../components/Button';
 
 export default function Projects() {
   const location = useLocation();
   const { user } = useAuthStore();
   const { citizenProjects, setCitizenProjects, userLocation } = useCitizenStore();
-  const [activeTab, setActiveTab] = useState(location.state?.tab || 'area'); // 'area', 'nearby', 'all'
-  
+  const [activeTab, setActiveTab] = useState(location.state?.tab || 'area');
+
   const [filteredProjects, setFilteredProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
+
   const [radius, setRadius] = useState(20);
   const [searchTerm, setSearchTerm] = useState('');
   const [stateFilter, setStateFilter] = useState('');
@@ -73,90 +74,82 @@ export default function Projects() {
 
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      result = result.filter(p => 
-        p.name?.toLowerCase().includes(term) || 
-        p.city?.toLowerCase().includes(term) ||
-        p.district?.toLowerCase().includes(term) ||
-        p.state?.toLowerCase().includes(term)
+      result = result.filter(
+        (p) =>
+          p.name?.toLowerCase().includes(term) ||
+          p.city?.toLowerCase().includes(term) ||
+          p.district?.toLowerCase().includes(term) ||
+          p.state?.toLowerCase().includes(term)
       );
     }
 
     if (stateFilter) {
-      result = result.filter(p => p.state === stateFilter);
+      result = result.filter((p) => p.state === stateFilter);
     }
 
     if (statusFilter) {
-      result = result.filter(p => p.status === statusFilter);
+      result = result.filter((p) => p.status === statusFilter);
     }
 
     setFilteredProjects(result);
   }, [searchTerm, stateFilter, statusFilter, citizenProjects]);
 
-  const uniqueStates = [...new Set(citizenProjects.map(p => p.state).filter(Boolean))].sort();
+  const uniqueStates = [...new Set(citizenProjects.map((p) => p.state).filter(Boolean))].sort();
 
   return (
-    <DashboardLayout title="Projects" roleName="Citizen" badgeColorClass="border-emerald-500/30 text-emerald-400">
+    <DashboardLayout title="Projects" roleName="Citizen" badgeColorClass="border-emerald-300/20 bg-emerald-400/10 text-emerald-100">
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-zinc-100 flex items-center gap-2">
-          <Globe className="w-6 h-6 text-emerald-500" />
+        <h2 className="flex items-center gap-3 text-3xl font-semibold text-white">
+          <div className="rounded-2xl border border-white/10 bg-white/6 p-3 text-emerald-200">
+            <Globe className="h-6 w-6" />
+          </div>
           Infrastructure Projects
         </h2>
-        <p className="text-zinc-400 mt-2">Explore and track road construction projects.</p>
+        <p className="mt-3 max-w-2xl text-sm text-slate-400 sm:text-base">Explore and track road construction projects through a clearer discovery experience.</p>
       </div>
 
-      {/* Tabs */}
-      <div className="flex space-x-1 bg-zinc-900/50 p-1 rounded-xl mb-6 border border-zinc-800">
-        <button
-          onClick={() => setActiveTab('area')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-lg transition-all ${
-            activeTab === 'area' ? 'bg-zinc-800 text-emerald-400 shadow-sm' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
-          }`}
-        >
-          <MapPin className="w-4 h-4" />
-          My Area
-        </button>
-        <button
-          onClick={() => setActiveTab('nearby')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-lg transition-all ${
-            activeTab === 'nearby' ? 'bg-zinc-800 text-emerald-400 shadow-sm' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
-          }`}
-        >
-          <Navigation className="w-4 h-4" />
-          Nearby
-        </button>
-        <button
-          onClick={() => setActiveTab('all')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-lg transition-all ${
-            activeTab === 'all' ? 'bg-zinc-800 text-emerald-400 shadow-sm' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
-          }`}
-        >
-          <Globe className="w-4 h-4" />
-          All India
-        </button>
+      <div className="mb-6 grid gap-3 rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-2 sm:grid-cols-3">
+        {[
+          ['area', 'My Area', MapPin],
+          ['nearby', 'Nearby', Navigation],
+          ['all', 'All India', Globe],
+        ].map(([key, label, Icon]) => (
+          <button
+            key={key}
+            onClick={() => setActiveTab(key)}
+            className={`flex items-center justify-center gap-2 rounded-[1.2rem] px-4 py-3 text-sm font-medium transition ${
+              activeTab === key
+                ? 'bg-gradient-to-r from-emerald-300/18 via-teal-300/10 to-transparent text-white shadow-[0_14px_30px_rgba(16,185,129,0.12)]'
+                : 'text-slate-400 hover:bg-white/6 hover:text-slate-100'
+            }`}
+          >
+            <Icon className="h-4 w-4" />
+            {label}
+          </button>
+        ))}
       </div>
 
-      {/* Filters */}
-      <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-xl mb-8 flex flex-col md:flex-row gap-4">
-        <div className="flex-1 relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-4 w-4 text-zinc-500" />
+      <div className="mb-8 flex flex-col gap-4 rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-4 backdrop-blur-xl lg:flex-row">
+        <div className="relative flex-1">
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+            <Search className="h-4 w-4 text-slate-500" />
           </div>
           <input
             type="text"
             placeholder="Search projects..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
+            className="min-h-12 w-full rounded-xl border border-white/10 bg-slate-950/55 py-3 pl-11 pr-4 text-sm text-slate-100 outline-none transition duration-200 placeholder:text-slate-500 focus:border-emerald-300/45 focus:bg-slate-950/72 focus:ring-4 focus:ring-emerald-400/10"
           />
         </div>
 
         <div className="flex flex-wrap gap-4">
           {activeTab === 'nearby' && (
-            <div className="relative min-w-[120px]">
-              <select 
-                value={radius} 
+            <div className="relative min-w-[130px]">
+              <select
+                value={radius}
                 onChange={(e) => setRadius(Number(e.target.value))}
-                className="w-full pl-4 pr-8 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none appearance-none"
+                className="min-h-12 w-full rounded-xl border border-white/10 bg-slate-950/55 px-4 py-3 text-sm text-slate-100 outline-none transition duration-200 focus:border-emerald-300/45 focus:bg-slate-950/72 focus:ring-4 focus:ring-emerald-400/10"
               >
                 <option value={5}>5 km</option>
                 <option value={10}>10 km</option>
@@ -168,69 +161,79 @@ export default function Projects() {
           )}
 
           {activeTab === 'all' && (
-            <div className="relative min-w-[150px]">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Filter className="h-4 w-4 text-zinc-500" />
+            <div className="relative min-w-[170px]">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                <Filter className="h-4 w-4 text-slate-500" />
               </div>
               <select
                 value={stateFilter}
                 onChange={(e) => setStateFilter(e.target.value)}
-                className="w-full pl-10 pr-8 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none appearance-none"
+                className="min-h-12 w-full rounded-xl border border-white/10 bg-slate-950/55 py-3 pl-11 pr-4 text-sm text-slate-100 outline-none transition duration-200 focus:border-emerald-300/45 focus:bg-slate-950/72 focus:ring-4 focus:ring-emerald-400/10"
               >
                 <option value="">All States</option>
-                {uniqueStates.map(state => (
-                  <option key={state} value={state}>{state}</option>
+                {uniqueStates.map((state) => (
+                  <option key={state} value={state}>
+                    {state}
+                  </option>
                 ))}
               </select>
             </div>
           )}
 
-          <div className="relative min-w-[150px]">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Filter className="h-4 w-4 text-zinc-500" />
+          <div className="relative min-w-[170px]">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+              <Filter className="h-4 w-4 text-slate-500" />
             </div>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full pl-10 pr-8 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none appearance-none"
+              className="min-h-12 w-full rounded-xl border border-white/10 bg-slate-950/55 py-3 pl-11 pr-4 text-sm text-slate-100 outline-none transition duration-200 focus:border-emerald-300/45 focus:bg-slate-950/72 focus:ring-4 focus:ring-emerald-400/10"
             >
               <option value="">All Statuses</option>
-              <option value="PLANNED">Planned</option>
-              <option value="ACTIVE">Active</option>
+              <option value="OPEN_FOR_BIDDING">Open for Bidding</option>
+              <option value="ASSIGNED">Assigned</option>
+              <option value="IN_PROGRESS">In Progress</option>
               <option value="COMPLETED">Completed</option>
-              <option value="FAILED">Failed</option>
             </select>
           </div>
         </div>
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
+        <div className="flex justify-center py-14">
+          <div className="shimmer-line h-10 w-10 rounded-full" />
         </div>
       ) : error ? (
-        <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-lg flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 rounded-[1.5rem] border border-rose-400/20 bg-rose-500/10 p-4 text-rose-100">
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
           <p>{error}</p>
         </div>
       ) : filteredProjects.length === 0 ? (
-        <div className="bg-zinc-900/50 border border-zinc-800 p-12 rounded-xl text-center">
-          <Globe className="w-16 h-16 text-zinc-700 mx-auto mb-4" />
-          <h3 className="text-xl font-medium text-zinc-300 mb-2">No Projects Found</h3>
-          <p className="text-zinc-500 max-w-md mx-auto">Try adjusting your search terms or filters to find what you're looking for.</p>
+        <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-12 text-center">
+          <Globe className="mx-auto mb-4 h-16 w-16 text-slate-700" />
+          <h3 className="text-xl font-medium text-slate-200">No Projects Found</h3>
+          <p className="mx-auto mt-2 max-w-md text-slate-400">Try adjusting your search terms or filters to find what you&apos;re looking for.</p>
           {(searchTerm || stateFilter || statusFilter) && (
-            <button 
-              onClick={() => { setSearchTerm(''); setStateFilter(''); setStatusFilter(''); }}
-              className="mt-6 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-colors"
+            <Button
+              onClick={() => {
+                setSearchTerm('');
+                setStateFilter('');
+                setStatusFilter('');
+              }}
+              variant="outline"
+              className="mx-auto mt-6"
+              fullWidth={false}
             >
               Clear Filters
-            </button>
+            </Button>
           )}
         </div>
       ) : (
         <>
-          <p className="text-sm text-zinc-400 mb-4">Showing {filteredProjects.length} project{filteredProjects.length !== 1 ? 's' : ''}</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <p className="mb-4 text-sm text-slate-400">
+            Showing {filteredProjects.length} project{filteredProjects.length !== 1 ? 's' : ''}
+          </p>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
             {filteredProjects.map((project) => (
               <ProjectCard key={project.id} project={project} />
             ))}

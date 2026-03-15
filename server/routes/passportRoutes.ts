@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import { createPassport, getProjectPassports, verifyPassport } from '../controllers/passportController.js';
-import { authenticateToken } from '../middleware/authMiddleware.js';
+import { authenticateToken, requireRole } from '../middleware/authMiddleware.js';
 
 const router = Router();
 
-router.post('/create', authenticateToken, createPassport);
+router.post('/create', authenticateToken, requireRole(['ADMIN', 'CONTRACTOR']), createPassport);
 router.get('/project/:id', authenticateToken, getProjectPassports);
-router.post('/verify', authenticateToken, verifyPassport);
+router.post('/verify', authenticateToken, requireRole(['DRIVER', 'ADMIN']), verifyPassport);
 
 export default router;

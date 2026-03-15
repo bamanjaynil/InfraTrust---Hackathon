@@ -1,13 +1,23 @@
 import { create } from 'zustand';
 
+const storedUser = (() => {
+  try {
+    const raw = localStorage.getItem('auth_user');
+    return raw ? JSON.parse(raw) : null;
+  } catch (_error) {
+    return null;
+  }
+})();
+
 export const useAuthStore = create((set) => ({
-  user: null,
+  user: storedUser,
   token: localStorage.getItem('token') || null,
-  role: null,
+  role: storedUser?.role || null,
   isAuthenticated: !!localStorage.getItem('token'),
   
   login: (userData, token) => {
     localStorage.setItem('token', token);
+    localStorage.setItem('auth_user', JSON.stringify(userData));
     set({
       user: userData,
       token,
@@ -18,6 +28,7 @@ export const useAuthStore = create((set) => ({
   
   logout: () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('auth_user');
     set({
       user: null,
       token: null,
@@ -26,5 +37,12 @@ export const useAuthStore = create((set) => ({
     });
   },
   
-  setUser: (userData) => set({ user: userData, role: userData?.role }),
+  setUser: (userData) => {
+    if (userData) {
+      localStorage.setItem('auth_user', JSON.stringify(userData));
+    } else {
+      localStorage.removeItem('auth_user');
+    }
+    set({ user: userData, role: userData?.role || null });
+  },
 }));

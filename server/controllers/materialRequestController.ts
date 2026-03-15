@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import db from '../db.js';
+import * as passportService from '../services/passportService.js';
 
 export const createMaterialRequest = (req: Request, res: Response) => {
   try {
@@ -27,7 +28,7 @@ export const createMaterialRequest = (req: Request, res: Response) => {
   }
 };
 
-export const approveMaterialRequest = (req: Request, res: Response) => {
+export const approveMaterialRequest = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const request = db.prepare('SELECT * FROM material_requests WHERE id = ?').get(id);
@@ -35,15 +36,19 @@ export const approveMaterialRequest = (req: Request, res: Response) => {
 
     db.prepare('UPDATE material_requests SET status = ? WHERE id = ?').run('APPROVED', id);
 
-    // Auto-create material passport and delivery
-    const passportId = `pass-${Date.now()}`;
-    db.prepare('INSERT INTO material_passports (id, project_id, material_type, quantity, factory_name, truck_id, qr_code) VALUES (?, ?, ?, ?, ?, ?, ?)').run(
-      passportId, request.project_id, request.material_type, request.quantity, 'Default Factory', 'TRK-001', 'QR-CODE-DATA'
-    );
+    // Auto-create material passport
+    const passport = await passportService.createPassport({
+      project_id: request.project_id,
+      material_type: request.material_type,
+      quantity: request.quantity,
+      factory_name: 'Default Factory',
+      truck_id: 'TRK-001'
+    });
 
+    // Auto-create delivery record connected to passport
     const deliveryId = `del-${Date.now()}`;
-    db.prepare('INSERT INTO deliveries (id, passport_id, status) VALUES (?, ?, ?)').run(
-      deliveryId, passportId, 'PENDING'
+    db.prepare('INSERT INTO deliveries (id, passport_id, project_id, contractor_id, truck_number, material_type, volume, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
+      deliveryId, passport.id, request.project_id, request.contractor_id, 'TRK-001', request.material_type, request.quantity, 'PENDING'
     );
 
     res.json({ status: 'success' });

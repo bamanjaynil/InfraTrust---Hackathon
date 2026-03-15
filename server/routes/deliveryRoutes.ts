@@ -7,7 +7,9 @@ import {
   createDelivery, 
   updateDeliveryStatus,
   startDelivery,
+  startDeliveryByBody,
   markArrived,
+  markArrivedByBody,
   completeDelivery,
   assignDriver,
   verifyDelivery,
@@ -23,9 +25,11 @@ router.get('/contractor', authenticateToken, requireRole(['CONTRACTOR']), getDel
 router.get('/:id', getDeliveryById);
 router.post('/', createDelivery);
 router.put('/:id/status', updateDeliveryStatus);
-router.post('/:id/start', startDelivery);
-router.post('/:id/arrive', markArrived);
-router.post('/:id/complete', completeDelivery);
+router.post('/start', authenticateToken, requireRole(['DRIVER']), startDeliveryByBody);
+router.post('/:id/start', authenticateToken, requireRole(['DRIVER']), startDelivery);
+router.post('/arrived', authenticateToken, requireRole(['DRIVER']), markArrivedByBody);
+router.post('/:id/arrive', authenticateToken, requireRole(['DRIVER']), markArrived);
+router.post('/:id/complete', authenticateToken, requireRole(['DRIVER']), completeDelivery);
 router.post('/assign-driver', authenticateToken, requireRole(['ADMIN']), assignDriver);
 router.post('/verify', authenticateToken, requireRole(['DRIVER']), verifyDelivery);
 router.get('/driver/:driverId', authenticateToken, requireRole(['DRIVER']), getDeliveriesByDriverId);

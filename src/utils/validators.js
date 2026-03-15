@@ -9,5 +9,5 @@ export const isValidPhone = (phone) => {
 };
 
 export const isStrongPassword = (password) => {
-  return password.length >= 8;
+  return password.length >= 6;
 };

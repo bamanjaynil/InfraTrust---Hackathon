@@ -49,31 +49,32 @@ const ProjectDetail = () => {
     if (error) return <div className="p-6 text-red-400">{error}</div>;
     if (!data) return <div className="p-6 text-zinc-400">Project not found</div>;
 
-    const { project, boq } = data;
+    const { project, boq, deliveries = [], reports = [] } = data;
     const canUpdateStatus = userRole === 'ADMIN' || userRole === 'CONTRACTOR';
 
     const getStatusIcon = (status) => {
       switch (status) {
-        case 'ACTIVE': return <Activity className="w-4 h-4 mr-1.5" />;
+        case 'ASSIGNED':
+        case 'IN_PROGRESS': return <Activity className="w-4 h-4 mr-1.5" />;
         case 'COMPLETED': return <CheckCircle className="w-4 h-4 mr-1.5" />;
-        case 'FAILED': return <XCircle className="w-4 h-4 mr-1.5" />;
+        case 'OPEN_FOR_BIDDING': return <Clock className="w-4 h-4 mr-1.5" />;
         default: return <Clock className="w-4 h-4 mr-1.5" />;
       }
     };
 
     const getStatusColor = (status) => {
       switch (status) {
-        case 'ACTIVE': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+        case 'ASSIGNED':
+        case 'IN_PROGRESS': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
         case 'COMPLETED': return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
-        case 'FAILED': return 'bg-red-500/10 text-red-400 border-red-500/20';
+        case 'OPEN_FOR_BIDDING': return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
         default: return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
       }
     };
 
     const getProgressPercentage = () => {
       if (project.status === 'COMPLETED') return 100;
-      if (project.status === 'PLANNED') return 0;
-      if (project.status === 'FAILED') return 0;
+      if (project.status === 'OPEN_FOR_BIDDING') return 5;
       
       const start = new Date(project.start_date || project.created_at).getTime();
       const end = new Date(project.end_date || new Date(start + 90 * 24 * 60 * 60 * 1000)).getTime();
@@ -143,7 +144,7 @@ const ProjectDetail = () => {
 
                 <div className="space-y-1">
                   <p className="text-sm text-zinc-500 flex items-center gap-2"><Ruler className="w-4 h-4" /> Dimensions</p>
-                  <p className="font-medium text-zinc-200">{project.length}m <span className="text-zinc-600">x</span> {project.width}m</p>
+                  <p className="font-medium text-zinc-200">{project.road_length || project.length}km <span className="text-zinc-600">x</span> {project.road_width || project.width}m</p>
                 </div>
 
                 <div className="space-y-1">
@@ -157,9 +158,9 @@ const ProjectDetail = () => {
                 </div>
               </div>
 
-              <div className="mt-8 pt-6 border-t border-zinc-800">
-                <h3 className="text-sm font-medium text-zinc-300 mb-4 flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-emerald-500" />
+            <div className="mt-8 pt-6 border-t border-zinc-800">
+              <h3 className="text-sm font-medium text-zinc-300 mb-4 flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-emerald-500" />
                   Coordinates
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -170,17 +171,35 @@ const ProjectDetail = () => {
                   <div className="bg-zinc-950/50 p-3 rounded-lg border border-zinc-800/50">
                     <span className="text-zinc-500 block mb-1">End Point</span>
                     <span className="font-mono text-zinc-300">{project.end_lat}, {project.end_lng}</span>
-                  </div>
                 </div>
               </div>
             </div>
+
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+              <h2 className="text-lg font-semibold text-zinc-100 mb-4">Transparency Snapshot</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4">
+                  <p className="text-xs uppercase tracking-wider text-zinc-500">Assigned Contractor</p>
+                  <p className="mt-2 text-sm text-zinc-200">{project.contractor_name || 'Not assigned yet'}</p>
+                </div>
+                <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4">
+                  <p className="text-xs uppercase tracking-wider text-zinc-500">Delivery History</p>
+                  <p className="mt-2 text-sm text-zinc-200">{deliveries.length} recorded deliveries</p>
+                </div>
+                <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4">
+                  <p className="text-xs uppercase tracking-wider text-zinc-500">Citizen Issues</p>
+                  <p className="mt-2 text-sm text-zinc-200">{reports.length} reported issues</p>
+                </div>
+              </div>
+            </div>
+          </div>
 
             {/* Status Management (Admin/Contractor only) */}
             {canUpdateStatus && (
               <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
                 <h2 className="text-lg font-semibold text-zinc-100 mb-4">Manage Status</h2>
                 <div className="flex flex-wrap gap-3">
-                  {['PLANNED', 'ACTIVE', 'COMPLETED', 'FAILED'].map(status => (
+                  {['OPEN_FOR_BIDDING', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED'].map(status => (
                     <button
                       key={status}
                       onClick={() => handleStatusChange(status)}

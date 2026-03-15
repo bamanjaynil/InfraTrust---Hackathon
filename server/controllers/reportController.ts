@@ -1,33 +1,19 @@
 import { Request, Response } from 'express';
 import db from '../db.js';
-import { createReport, getReportsByUserId, getAllReports } from '../models/reportModel.js';
 import { recalculateContractorScore } from './contractorController.js';
 
 export const submitReport = (req: Request, res: Response) => {
   try {
     const { project_id, description, photo, latitude, longitude } = req.body;
-    
-    // Mock auth token parsing
-    const authHeader = req.headers.authorization;
-    let userId = 'citizen-1'; 
-    if (authHeader && authHeader.startsWith('Bearer mock-jwt-token-')) {
-      userId = authHeader.split('-')[3];
-    }
+    const userId = req.user?.id || 'citizen-1';
+    const id = `report-${Date.now()}`;
 
-    const id = `rep-${Date.now()}`;
-    
-    const report = createReport({
-      id,
-      user_id: userId,
-      project_id: project_id || null,
-      description,
-      photo_url: photo || null,
-      latitude: parseFloat(latitude),
-      longitude: parseFloat(longitude),
-      status: 'OPEN'
-    });
+    db.prepare(`
+      INSERT INTO reports (id, user_id, project_id, description, photo_url, latitude, longitude, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'OPEN')
+    `).run(id, userId, project_id || null, description, photo || null, latitude, longitude);
 
-    res.status(201).json({ status: 'success', data: report });
+    res.status(201).json({ status: 'success', data: { id } });
   } catch (error) {
     console.error('Error submitting report:', error);
     res.status(500).json({ status: 'error', message: 'Failed to submit report' });
@@ -36,14 +22,8 @@ export const submitReport = (req: Request, res: Response) => {
 
 export const getMyReports = (req: Request, res: Response) => {
   try {
-    const authHeader = req.headers.authorization;
-    let userId = 'citizen-1'; 
-    if (authHeader && authHeader.startsWith('Bearer mock-jwt-token-')) {
-      userId = authHeader.split('-')[3];
-    }
-
-    const reports = getReportsByUserId(userId);
-    res.status(200).json({ status: 'success', reports });
+    const reports = db.prepare('SELECT * FROM reports WHERE user_id = ? ORDER BY created_at DESC').all(req.user?.id || 'citizen-1');
+    res.json({ status: 'success', reports });
   } catch (error) {
     console.error('Error fetching my reports:', error);
     res.status(500).json({ status: 'error', message: 'Failed to fetch reports' });
@@ -52,43 +32,32 @@ export const getMyReports = (req: Request, res: Response) => {
 
 export const getReports = (req: Request, res: Response) => {
   try {
-    const { search, status } = req.query;
-    
-    let query = 'SELECT * FROM reports WHERE 1=1';
-    const params: any[] = [];
-
-    if (status) {
-      query += ' AND status = ?';
-      params.push(status);
-    }
-
-    if (search) {
-      query += ' AND (description LIKE ? OR id LIKE ?)';
-      params.push(`%${search}%`, `%${search}%`);
-    }
-
-    query += ' ORDER BY created_at DESC';
-
-    const reports = db.prepare(query).all(...params);
-    res.status(200).json({ status: 'success', reports });
+    const { search = '', status = '' } = req.query as any;
+    const reports = db.prepare(`
+      SELECT r.*, u.name AS reporter_name, p.name AS project_name
+      FROM reports r
+      JOIN users u ON u.id = r.user_id
+      LEFT JOIN projects p ON p.id = r.project_id
+      WHERE (? = '' OR r.status = ?)
+        AND (? = '' OR r.description LIKE ? OR COALESCE(p.name, '') LIKE ?)
+      ORDER BY r.created_at DESC
+    `).all(status, status, search, `%${search}%`, `%${search}%`);
+    res.json({ status: 'success', reports });
   } catch (error) {
-    console.error('Error fetching all reports:', error);
+    console.error('Error fetching reports:', error);
     res.status(500).json({ status: 'error', message: 'Failed to fetch reports' });
   }
 };
 
 export const getReportsByProject = (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
-    
     const reports = db.prepare(`
-      SELECT r.*, p.name as project_name 
+      SELECT r.*, u.name AS reporter_name
       FROM reports r
-      LEFT JOIN projects p ON r.project_id = p.id
+      JOIN users u ON u.id = r.user_id
       WHERE r.project_id = ?
       ORDER BY r.created_at DESC
-    `).all(id);
-    
+    `).all(req.params.id);
     res.json({ status: 'success', data: reports });
   } catch (error) {
     console.error('Error fetching project reports:', error);
@@ -98,19 +67,14 @@ export const getReportsByProject = (req: Request, res: Response) => {
 
 export const getReportsByContractor = (req: Request, res: Response) => {
   try {
-    const contractor_id = req.user?.id;
-    if (!contractor_id) {
-      return res.status(400).json({ status: 'error', message: 'Contractor ID is required' });
-    }
-    
     const reports = db.prepare(`
-      SELECT r.*, p.name as project_name 
+      SELECT r.*, p.name AS project_name, u.name AS reporter_name
       FROM reports r
-      LEFT JOIN projects p ON r.project_id = p.id
+      JOIN projects p ON p.id = r.project_id
+      JOIN users u ON u.id = r.user_id
       WHERE p.contractor_id = ?
       ORDER BY r.created_at DESC
-    `).all(contractor_id);
-    
+    `).all(req.user.id);
     res.json({ status: 'success', data: reports });
   } catch (error) {
     console.error('Error fetching contractor reports:', error);
@@ -120,26 +84,17 @@ export const getReportsByContractor = (req: Request, res: Response) => {
 
 export const updateReportStatus = (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
-    const { status } = req.body;
-    
-    db.prepare('UPDATE reports SET status = ? WHERE id = ?').run(status, id);
-    
-    // If status changed to RESOLVED, recalculate contractor score
-    if (status === 'RESOLVED') {
-      const report = db.prepare(`
-        SELECT p.contractor_id 
-        FROM reports r
-        JOIN projects p ON r.project_id = p.id
-        WHERE r.id = ?
-      `).get(id) as any;
-      
-      if (report && report.contractor_id) {
-        recalculateContractorScore(report.contractor_id);
-      }
+    db.prepare('UPDATE reports SET status = ? WHERE id = ?').run(req.body.status, req.params.id);
+    const report = db.prepare(`
+      SELECT p.contractor_id
+      FROM reports r
+      LEFT JOIN projects p ON p.id = r.project_id
+      WHERE r.id = ?
+    `).get(req.params.id) as any;
+    if (report?.contractor_id) {
+      recalculateContractorScore(report.contractor_id);
     }
-
-    res.status(200).json({ status: 'success', message: 'Report status updated' });
+    res.json({ status: 'success', message: 'Report status updated' });
   } catch (error) {
     console.error('Error updating report status:', error);
     res.status(500).json({ status: 'error', message: 'Failed to update report status' });

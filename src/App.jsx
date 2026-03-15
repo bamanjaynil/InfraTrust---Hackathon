@@ -36,7 +36,7 @@ import ActiveDeliveries from './pages/dashboards/driver/ActiveDeliveries';
 export default function App() {
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-zinc-950">
+      <div className="app-shell min-h-screen text-slate-50">
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />

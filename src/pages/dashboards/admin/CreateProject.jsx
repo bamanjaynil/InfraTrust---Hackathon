@@ -22,10 +22,11 @@ const CreateProject = () => {
     district: '',
     city: '',
     soil_type: 'NORMAL',
+    soil_report_text: '',
     road_type: 'RURAL',
     length: '',
     width: '',
-    contractor_id: ''
+    soil_report_file: null
   });
 
   useEffect(() => {
@@ -48,21 +49,48 @@ const CreateProject = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0] || null;
+    setFormData((prev) => ({ ...prev, soil_report_file: file }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
+      if (!formData.soil_report_text && !formData.soil_report_file) {
+        setError('Please provide a soil report summary or upload a soil report file.');
+        setLoading(false);
+        return;
+      }
+
+      let soilReportFile = null;
+      if (formData.soil_report_file) {
+        soilReportFile = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve({
+            name: formData.soil_report_file.name,
+            type: formData.soil_report_file.type,
+            base64: reader.result,
+          });
+          reader.onerror = reject;
+          reader.readAsDataURL(formData.soil_report_file);
+        });
+      }
+
       const payload = {
         ...formData,
+        road_length: parseFloat(formData.length),
+        road_width: parseFloat(formData.width),
         start_lat: parseFloat(formData.start_lat) || 0,
         start_lng: parseFloat(formData.start_lng) || 0,
         end_lat: parseFloat(formData.end_lat) || 0,
         end_lng: parseFloat(formData.end_lng) || 0,
         length: parseFloat(formData.length),
         width: parseFloat(formData.width),
-        contractor_id: formData.contractor_id || null
+        soil_report_file: soilReportFile
       };
 
       await adminService.createProject(payload);
@@ -183,26 +211,35 @@ const CreateProject = () => {
             </div>
 
             <div className="pt-6 border-t border-zinc-800 space-y-4">
-              <h3 className="text-sm font-medium text-zinc-400 uppercase tracking-wider">Assignment</h3>
+              <h3 className="text-sm font-medium text-zinc-400 uppercase tracking-wider">Soil Report</h3>
               <div className="grid grid-cols-1 gap-6">
                 <div>
-                  <label className="block text-zinc-400 text-xs font-medium mb-1.5 uppercase tracking-wider" htmlFor="contractor_id">
-                    Assign Contractor
+                  <label className="block text-zinc-400 text-xs font-medium mb-1.5 uppercase tracking-wider" htmlFor="soil_report_text">
+                    Soil Report Summary
                   </label>
-                  <select
+                  <textarea
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-2.5 px-4 text-zinc-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
-                    id="contractor_id" name="contractor_id"
-                    value={formData.contractor_id} onChange={handleChange}
-                    disabled={loadingContractors}
-                  >
-                    <option value="">-- Select a Contractor --</option>
-                    {contractors.map(contractor => (
-                      <option key={contractor.id} value={contractor.id}>
-                        {contractor.name} ({contractor.email})
-                      </option>
-                    ))}
-                  </select>
-                  {loadingContractors && <p className="text-xs text-zinc-500 mt-1">Loading contractors...</p>}
+                    id="soil_report_text"
+                    name="soil_report_text"
+                    rows="4"
+                    value={formData.soil_report_text}
+                    onChange={handleChange}
+                    placeholder="Paste extracted report notes or a plain-text soil summary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-zinc-400 text-xs font-medium mb-1.5 uppercase tracking-wider" htmlFor="soil_report_file">
+                    Upload Report File
+                  </label>
+                  <input
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-2.5 px-4 text-zinc-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                    id="soil_report_file"
+                    name="soil_report_file"
+                    type="file"
+                    accept=".pdf,.png,.jpg,.jpeg,.txt"
+                    onChange={handleFileChange}
+                  />
+                  <p className="text-xs text-zinc-500 mt-2">PDF, image, or text report. The server stores the file path for transparency records.</p>
                 </div>
               </div>
             </div>

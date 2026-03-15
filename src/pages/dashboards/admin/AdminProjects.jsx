@@ -4,8 +4,8 @@ import DashboardLayout from '../../../components/DashboardLayout';
 import { Plus, FolderKanban, Search, Filter, ExternalLink } from 'lucide-react';
 import useAdminStore from '../../../store/adminStore';
 import Card from '../../../components/Card';
-import StatusBadge from '../../../components/StatusBadge';
 import Button from '../../../components/Button';
+import StatusBadge from '../../../components/StatusBadge';
 
 const AdminProjects = () => {
   const navigate = useNavigate();
@@ -21,121 +21,126 @@ const AdminProjects = () => {
   }, [searchTerm, fetchProjects]);
 
   return (
-    <DashboardLayout 
-      title="Infrastructure Projects" 
-      roleName="Administrator" 
-      badgeColorClass="bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+    <DashboardLayout
+      title="Infrastructure Projects"
+      roleName="Administrator"
+      badgeColorClass="border-teal-300/20 bg-teal-400/10 text-teal-100"
     >
       <div className="space-y-6">
-        {/* Header Actions */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-          <div className="relative w-full sm:w-96">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-            <input 
-              type="text" 
-              placeholder="Search projects by name, location..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-lg py-2 pl-10 pr-4 text-sm text-zinc-200 focus:outline-none focus:border-emerald-500 transition-colors"
-            />
+        <section className="glass-panel rounded-[1.75rem] p-5 sm:p-6">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div>
+              <h2 className="text-2xl font-semibold text-white">Project registry</h2>
+              <p className="mt-2 text-sm text-slate-400">Search, review, and update infrastructure records from a cleaner operations table.</p>
+            </div>
+
+            <div className="flex w-full flex-col gap-3 sm:flex-row xl:w-auto">
+              <div className="relative min-w-0 flex-1 xl:w-96">
+                <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                <input
+                  type="text"
+                  placeholder="Search projects by name or location"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="min-h-12 w-full rounded-xl border border-white/10 bg-slate-950/55 py-3 pl-11 pr-4 text-sm text-slate-100 outline-none transition duration-200 placeholder:text-slate-500 focus:border-teal-300/45 focus:bg-slate-950/72 focus:ring-4 focus:ring-teal-400/10"
+                />
+              </div>
+              <Button variant="secondary" fullWidth={false}>
+                <Filter className="h-4 w-4" />
+                Filter
+              </Button>
+              <Button onClick={() => navigate('/admin/projects/create')} fullWidth={false}>
+                <Plus className="h-4 w-4" />
+                Create Project
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-3 w-full sm:w-auto">
-            <Button className="bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border-zinc-800 w-auto">
-              <Filter className="w-4 h-4 mr-2" />
-              Filter
-            </Button>
-            <Button
-              onClick={() => navigate('/admin/projects/create')}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white w-auto"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Create Project
-            </Button>
-          </div>
-        </div>
-        
-        <Card noPadding>
+        </section>
+
+        <Card noPadding className="overflow-hidden">
           {loading ? (
             <div className="p-12 text-center">
-              <div className="animate-spin w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-              <p className="text-zinc-400 text-sm">Loading projects...</p>
+              <div className="shimmer-line mx-auto mb-4 h-8 w-8 rounded-full" />
+              <p className="text-sm text-slate-400">Loading projects...</p>
             </div>
           ) : error ? (
-            <div className="p-12 text-center text-red-400">
+            <div className="p-12 text-center text-rose-200">
               <p>{error}</p>
-              <Button onClick={() => fetchProjects()} className="mt-4 w-auto mx-auto">Retry</Button>
+              <Button onClick={() => fetchProjects()} className="mx-auto mt-4" fullWidth={false}>
+                Retry
+              </Button>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-zinc-800">
-                <thead className="bg-zinc-900/50">
+            <div className="table-shell overflow-x-auto rounded-none border-0 bg-transparent shadow-none">
+              <table className="min-w-full divide-y divide-white/8">
+                <thead className="bg-white/[0.03]">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Project Details</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Location</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Contractor</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-4 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider">Actions</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Project Details</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Location</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Contractor</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Status</th>
+                    <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-800 bg-zinc-900">
+                <tbody className="divide-y divide-white/8 bg-slate-950/20">
                   {projects.length === 0 ? (
                     <tr>
-                      <td colSpan="5" className="px-6 py-12 text-center">
-                        <FolderKanban className="w-12 h-12 text-zinc-800 mx-auto mb-4" />
-                        <p className="text-zinc-500">No projects found in the system</p>
+                      <td colSpan="5" className="px-6 py-16 text-center">
+                        <FolderKanban className="mx-auto mb-4 h-12 w-12 text-slate-700" />
+                        <p className="text-slate-400">No projects found in the system</p>
                       </td>
                     </tr>
                   ) : (
                     projects.map((project) => (
-                      <tr 
-                        key={project.id} 
-                        className="hover:bg-zinc-800/30 transition-colors group"
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap">
+                      <tr key={project.id} className="transition-colors hover:bg-white/[0.03]">
+                        <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="p-2 rounded bg-zinc-800 text-zinc-400 group-hover:text-emerald-500 transition-colors">
-                              <FolderKanban className="w-4 h-4" />
+                            <div className="rounded-2xl border border-white/10 bg-white/6 p-3 text-slate-200">
+                              <FolderKanban className="h-4 w-4" />
                             </div>
                             <div>
-                              <p className="text-sm font-medium text-zinc-200">{project.name}</p>
-                              <p className="text-xs text-zinc-500 mt-0.5">{project.length_km}km x {project.width_m}m • {project.road_type}</p>
+                              <p className="text-sm font-medium text-slate-100">{project.name}</p>
+                              <p className="mt-1 text-xs text-slate-400">
+                                {project.road_length}km x {project.road_width}m • {project.road_type}
+                              </p>
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <p className="text-sm text-zinc-300">{project.city}</p>
-                          <p className="text-xs text-zinc-500 mt-0.5">{project.district}, {project.state}</p>
+                        <td className="px-6 py-4">
+                          <p className="text-sm text-slate-200">{project.city}</p>
+                          <p className="mt-1 text-xs text-slate-400">{project.district}, {project.state}</p>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center text-[10px] font-bold text-zinc-400">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/8 text-[11px] font-semibold text-slate-200">
                               {(project.contractor_name || 'U').charAt(0)}
                             </div>
-                            <span className="text-sm text-zinc-400">{project.contractor_name || 'Unassigned'}</span>
+                            <span className="text-sm text-slate-300">{project.contractor_name || 'Unassigned'}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <select 
-                            value={project.status}
-                            onChange={(e) => updateProjectStatus(project.id, e.target.value)}
-                            className="bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs rounded px-2 py-1 focus:outline-none focus:border-emerald-500 transition-colors"
-                          >
-                            <option value="PLANNED">Planned</option>
-                            <option value="ONGOING">Ongoing</option>
-                            <option value="COMPLETED">Completed</option>
-                            <option value="CANCELLED">Cancelled</option>
-                          </select>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <button 
-                              onClick={() => navigate(`/admin/projects/${project.id}`)}
-                              className="p-2 rounded hover:bg-zinc-800 text-zinc-400 hover:text-emerald-500 transition-colors"
-                              title="View Details"
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col items-start gap-3">
+                            <StatusBadge status={project.status} />
+                            <select
+                              value={project.status}
+                              onChange={(e) => updateProjectStatus(project.id, e.target.value)}
+                              className="rounded-xl border border-white/10 bg-slate-950/65 px-3 py-2 text-xs text-slate-200 outline-none transition focus:border-teal-300/40 focus:ring-4 focus:ring-teal-400/10"
                             >
-                              <ExternalLink className="w-4 h-4" />
-                            </button>
+                              <option value="OPEN_FOR_BIDDING">Open for Bidding</option>
+                              <option value="ASSIGNED">Assigned</option>
+                              <option value="IN_PROGRESS">In Progress</option>
+                              <option value="COMPLETED">Completed</option>
+                            </select>
                           </div>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <button
+                            onClick={() => navigate(`/admin/projects/${project.id}`)}
+                            className="inline-flex rounded-xl border border-white/10 bg-white/6 p-2.5 text-slate-300 transition hover:border-teal-300/20 hover:bg-teal-400/10 hover:text-white"
+                            title="View Details"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </button>
                         </td>
                       </tr>
                     ))

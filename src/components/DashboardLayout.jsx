@@ -1,23 +1,48 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LogOut, LayoutDashboard, FolderKanban, PlusCircle, Map, Navigation, Globe, AlertTriangle, FileText, Users, Activity, User } from 'lucide-react';
+import {
+  Activity,
+  AlertTriangle,
+  FileText,
+  FolderKanban,
+  Globe,
+  LayoutDashboard,
+  LogOut,
+  Map,
+  Menu,
+  Navigation,
+  PanelLeftClose,
+  PlusCircle,
+  ShieldCheck,
+  User,
+  Users,
+  X,
+} from 'lucide-react';
+
+const roleAccent = {
+  ADMIN: 'from-teal-300/35 via-cyan-300/15 to-transparent',
+  CONTRACTOR: 'from-sky-300/35 via-blue-300/15 to-transparent',
+  DRIVER: 'from-amber-300/35 via-orange-300/12 to-transparent',
+  CITIZEN: 'from-emerald-300/35 via-teal-300/15 to-transparent',
+};
 
 export default function DashboardLayout({ title, roleName, badgeColorClass, children }) {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  const getNavLinks = () => {
-    const role = user?.role || roleName.toUpperCase();
-    const links = [
-      { name: 'Dashboard', path: `/${role.toLowerCase()}/dashboard`, icon: LayoutDashboard }
-    ];
+  const role = useMemo(() => user?.role || roleName?.toUpperCase(), [user?.role, roleName]);
+
+  const navLinks = useMemo(() => {
+    const links = [{ name: 'Dashboard', path: `/${role.toLowerCase()}/dashboard`, icon: LayoutDashboard }];
 
     if (role === 'ADMIN') {
       links.push({ name: 'Projects', path: '/admin/projects', icon: FolderKanban });
@@ -43,84 +68,167 @@ export default function DashboardLayout({ title, roleName, badgeColorClass, chil
     }
 
     return links;
+  }, [role]);
+
+  const isActiveLink = (path) => {
+    if (path === `/${role.toLowerCase()}/dashboard`) {
+      return location.pathname === path;
+    }
+    if (path === '/admin/projects') {
+      return location.pathname === path || (location.pathname.startsWith('/projects/') && !location.pathname.includes('create'));
+    }
+    if (path === '/contractor/projects') {
+      return location.pathname === path || (location.pathname.startsWith('/projects/') && !location.pathname.includes('create'));
+    }
+    return location.pathname === path || location.pathname.startsWith(`${path}/`);
   };
 
-  return (
-    <div className="flex h-screen bg-zinc-950 text-zinc-100 font-sans overflow-hidden">
-      {/* Sidebar */}
-      <aside className="w-64 bg-zinc-900 border-r border-zinc-800 flex flex-col">
-        <div className="p-6 border-b border-zinc-800">
-          <h2 className="text-xl font-bold text-emerald-500 tracking-tight">InfraTrust</h2>
-          <div className={`mt-2 inline-flex items-center px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider border ${badgeColorClass}`}>
+  const Sidebar = (
+    <aside
+      className={`glass-panel relative flex h-full flex-col overflow-hidden border-white/10 transition-all duration-300 ${
+        sidebarCollapsed ? 'lg:w-[5.5rem]' : 'lg:w-72'
+      } w-[18.5rem] rounded-none lg:rounded-[2rem]`}
+    >
+      <div className={`absolute inset-x-0 top-0 h-24 bg-gradient-to-br ${roleAccent[role] || roleAccent.CITIZEN}`} />
+
+      <div className="relative flex items-center justify-between border-b border-white/8 px-5 py-5">
+        <div className={`min-w-0 ${sidebarCollapsed ? 'lg:hidden' : ''}`}>
+          <h2 className="text-2xl font-semibold text-white">InfraTrust</h2>
+          <p className="mt-1 text-xs uppercase tracking-[0.26em] text-slate-400">Ops Console</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setSidebarCollapsed((value) => !value)}
+            className="hidden rounded-xl border border-white/10 bg-white/6 p-2 text-slate-300 transition hover:bg-white/10 hover:text-white lg:inline-flex"
+            aria-label="Toggle sidebar"
+          >
+            <PanelLeftClose className={`h-4 w-4 transition-transform ${sidebarCollapsed ? 'rotate-180' : ''}`} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileOpen(false)}
+            className="rounded-xl border border-white/10 bg-white/6 p-2 text-slate-300 transition hover:bg-white/10 hover:text-white lg:hidden"
+            aria-label="Close menu"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      <div className="relative px-4 pb-4 pt-5">
+        <div className={`rounded-[1.35rem] border border-white/10 bg-white/6 p-4 ${sidebarCollapsed ? 'lg:px-3 lg:py-3' : ''}`}>
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-300/80 to-sky-400/70 text-base font-semibold text-slate-950 shadow-[0_10px_25px_rgba(45,212,191,0.35)]">
+              {(user?.name || roleName || 'U').charAt(0)}
+            </div>
+            <div className={`min-w-0 ${sidebarCollapsed ? 'lg:hidden' : ''}`}>
+              <p className="truncate text-sm font-semibold text-slate-100">{user?.name || roleName}</p>
+              <p className="truncate text-xs text-slate-400">{user?.email || 'user@example.com'}</p>
+            </div>
+          </div>
+          <div
+            className={`mt-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] ${badgeColorClass} ${
+              sidebarCollapsed ? 'lg:hidden' : ''
+            }`}
+          >
+            <ShieldCheck className="h-3.5 w-3.5" />
             {user?.role || roleName.toUpperCase()}
           </div>
         </div>
-        
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {getNavLinks().map((link) => {
-            const Icon = link.icon;
-            let isActive = false;
-            if (link.path === `/${(user?.role || roleName).toLowerCase()}/dashboard`) {
-              isActive = location.pathname === link.path;
-            } else if (link.path === '/admin/projects') {
-              isActive = location.pathname === '/admin/projects' || (location.pathname.startsWith('/projects/') && !location.pathname.includes('create'));
-            } else if (link.path === '/contractor/projects') {
-              isActive = location.pathname === '/contractor/projects' || (location.pathname.startsWith('/projects/') && !location.pathname.includes('create'));
-            } else {
-              isActive = location.pathname === link.path || location.pathname.startsWith(`${link.path}/`);
-            }
-            
-            return (
-              <button
-                key={link.path}
-                onClick={() => navigate(link.path)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive 
-                    ? 'bg-emerald-500/10 text-emerald-400' 
-                    : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200'
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                {link.name}
-              </button>
-            );
-          })}
-        </nav>
+      </div>
 
-        <div className="p-4 border-t border-zinc-800">
-          <div className="flex items-center gap-3 px-3 py-2 mb-2">
-            <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm font-bold text-zinc-300">
-              {(user?.name || roleName).charAt(0)}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-zinc-200 truncate">{user?.name || roleName}</p>
-              <p className="text-xs text-zinc-500 truncate">{user?.email || 'user@example.com'}</p>
+      <nav className="relative flex-1 space-y-1 overflow-y-auto px-3 pb-4">
+        {navLinks.map((link) => {
+          const Icon = link.icon;
+          const active = isActiveLink(link.path);
+
+          return (
+            <button
+              key={link.path}
+              type="button"
+              onClick={() => {
+                navigate(link.path);
+                setMobileOpen(false);
+              }}
+              className={`group flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-sm font-medium transition duration-200 ${
+                active
+                  ? 'border-teal-300/20 bg-gradient-to-r from-teal-300/14 via-cyan-300/8 to-transparent text-white shadow-[0_12px_30px_rgba(20,184,166,0.12)]'
+                  : 'border-transparent text-slate-400 hover:border-white/8 hover:bg-white/6 hover:text-slate-100'
+              } ${sidebarCollapsed ? 'lg:justify-center lg:px-2' : ''}`}
+              title={sidebarCollapsed ? link.name : undefined}
+            >
+              <Icon className={`h-4.5 w-4.5 shrink-0 ${active ? 'text-teal-200' : 'text-slate-500 group-hover:text-slate-200'}`} />
+              <span className={sidebarCollapsed ? 'lg:hidden' : ''}>{link.name}</span>
+            </button>
+          );
+        })}
+      </nav>
+
+      <div className="relative border-t border-white/8 p-4">
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/6 px-4 py-3 text-sm font-medium text-slate-200 transition hover:border-rose-300/20 hover:bg-rose-500/10 hover:text-white"
+        >
+          <LogOut className="h-4 w-4" />
+          <span className={sidebarCollapsed ? 'lg:hidden' : ''}>Sign Out</span>
+        </button>
+      </div>
+    </aside>
+  );
+
+  return (
+    <div className="relative min-h-screen bg-transparent text-slate-100">
+      <div className="mx-auto flex min-h-screen max-w-[1700px] gap-0 p-0 lg:gap-6 lg:p-5">
+        <div className="hidden lg:block">{Sidebar}</div>
+
+        {mobileOpen && (
+          <div className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)}>
+            <div className="h-full w-[18.5rem]" onClick={(e) => e.stopPropagation()}>
+              {Sidebar}
             </div>
           </div>
-          <button 
-            onClick={handleLogout} 
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-zinc-800/50 border border-zinc-700/50 rounded-lg hover:bg-zinc-800 transition-colors text-sm font-medium text-zinc-300 hover:text-white"
-          >
-            <LogOut className="w-4 h-4" />
-            Sign Out
-          </button>
-        </div>
-      </aside>
+        )}
 
-      {/* Main Content Area */}
-      <main className="flex-1 flex flex-col overflow-hidden bg-zinc-950">
-        {/* Top Navigation */}
-        <header className="h-16 bg-zinc-900/50 border-b border-zinc-800 flex items-center justify-between px-8 shrink-0 backdrop-blur-sm">
-          <h1 className="text-xl font-semibold text-zinc-100">{title}</h1>
-        </header>
+        <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
+          <header className="sticky top-0 z-30 border-b border-white/8 bg-slate-950/35 backdrop-blur-xl lg:rounded-[1.75rem] lg:border lg:border-white/8">
+            <div className="flex items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+              <div className="flex min-w-0 items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setMobileOpen(true)}
+                  className="inline-flex rounded-2xl border border-white/10 bg-white/6 p-2.5 text-slate-300 transition hover:bg-white/10 hover:text-white lg:hidden"
+                  aria-label="Open menu"
+                >
+                  <Menu className="h-5 w-5" />
+                </button>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-[0.26em] text-slate-500">Workspace</p>
+                  <h1 className="truncate text-2xl font-semibold text-white">{title}</h1>
+                </div>
+              </div>
 
-        {/* Page Content */}
-        <div className="flex-1 overflow-y-auto p-8">
-          <div className="max-w-6xl mx-auto">
-            {children}
+              <div className="hidden items-center gap-3 sm:flex">
+                <div className="rounded-full border border-white/10 bg-white/6 px-4 py-2 text-sm text-slate-300">
+                  <span className="text-slate-500">Signed in as</span> {user?.name || roleName}
+                </div>
+                <div className={`rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] ${badgeColorClass}`}>
+                  {user?.role || roleName.toUpperCase()}
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <div className="relative flex-1 overflow-y-auto px-4 pb-6 pt-5 sm:px-6 lg:px-8 lg:pb-8 lg:pt-6">
+            <div className="relative mx-auto max-w-7xl">
+              <div className="pointer-events-none absolute -left-6 top-0 hidden h-48 w-48 rounded-full bg-teal-400/8 blur-3xl md:block" />
+              <div className="pointer-events-none absolute right-0 top-16 hidden h-40 w-40 rounded-full bg-sky-400/8 blur-3xl md:block" />
+              {children}
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

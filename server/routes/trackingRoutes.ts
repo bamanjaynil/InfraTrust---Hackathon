@@ -1,8 +1,9 @@
 import { Router } from 'express';
-import { addTrackingData } from '../controllers/trackingController.js';
+import { addTrackingData, getTracking } from '../controllers/trackingController.js';
 
 const router = Router();
 
 router.post('/', addTrackingData);
+router.get('/', getTracking);
 
 export default router;

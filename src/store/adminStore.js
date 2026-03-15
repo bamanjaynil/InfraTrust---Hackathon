@@ -68,8 +68,17 @@ const useAdminStore = create((set, get) => ({
       }));
     } catch (err) {
       set({ error: err.message });
-    }
-  }
+    }  },
+
+  assignDriver: async (deliveryId, driverId) => {
+    set({ loading: true, error: null });
+    try {
+      await adminService.assignDriverToDelivery(deliveryId, driverId);
+      await get().fetchDeliveries();
+      set({ loading: false });
+    } catch (err) {
+      set({ error: err.message, loading: false });
+    }  }
 }));
 
 export default useAdminStore;

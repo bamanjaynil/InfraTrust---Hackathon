@@ -3,6 +3,9 @@ import apiClient from '../services/apiClient';
 
 const useContractorStore = create((set, get) => ({
   contractorProjects: [],
+  openProjects: [],
+  myApplications: [],
+  assignedProjects: [],
   materialRequests: [],
   deliveries: [],
   drivers: [],
@@ -21,9 +24,27 @@ const useContractorStore = create((set, get) => ({
       const url = `/projects/contractor${queryString ? `?${queryString}` : ''}`;
       
       const response = await apiClient.get(url);
-      set({ contractorProjects: response.data.data, loading: false });
+      const payload = response.data.data || {};
+      set({
+        contractorProjects: payload.assignedProjects || [],
+        openProjects: payload.openProjects || [],
+        myApplications: payload.myApplications || [],
+        assignedProjects: payload.assignedProjects || [],
+        loading: false,
+      });
     } catch (error) {
       set({ error: error.message, loading: false });
+    }
+  },
+
+  applyToProject: async (projectId, applicationData) => {
+    set({ loading: true, error: null });
+    try {
+      await apiClient.post(`/projects/${projectId}/apply`, applicationData);
+      await get().fetchContractorProjects();
+      set({ loading: false });
+    } catch (error) {
+      set({ error: error.response?.data?.message || error.message, loading: false });
     }
   },
 
@@ -92,6 +113,17 @@ const useContractorStore = create((set, get) => ({
     try {
       const response = await apiClient.get(`/reports/project/${projectId}`);
       set({ projectReports: response.data.data, loading: false });
+    } catch (error) {
+      set({ error: error.message, loading: false });
+    }
+  },
+
+  passports: [],
+  fetchProjectPassports: async (projectId) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await apiClient.get(`/passports/project/${projectId}`);
+      set({ passports: response.data.data, loading: false });
     } catch (error) {
       set({ error: error.message, loading: false });
     }

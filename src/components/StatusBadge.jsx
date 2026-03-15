@@ -1,29 +1,48 @@
 import React from 'react';
+import { clsx } from 'clsx';
 
-const StatusBadge = ({ status }) => {
-  const getStatusStyles = (status) => {
-    switch (status?.toUpperCase()) {
-      case 'ACTIVE':
-      case 'DISPATCHED':
-      case 'RESOLVED':
-        return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-      case 'COMPLETED':
-      case 'DELIVERED':
-        return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
-      case 'FAILED':
-      case 'CANCELLED':
-        return 'bg-red-500/10 text-red-400 border-red-500/20';
-      case 'OPEN':
-      case 'PENDING':
-      case 'PLANNED':
-        return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
-      default:
-        return 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20';
-    }
-  };
+const styles = {
+  positive: 'border-emerald-400/22 bg-emerald-400/12 text-emerald-200',
+  info: 'border-sky-400/22 bg-sky-400/12 text-sky-200',
+  warning: 'border-amber-400/22 bg-amber-400/12 text-amber-200',
+  danger: 'border-rose-400/22 bg-rose-400/12 text-rose-200',
+  neutral: 'border-white/12 bg-white/6 text-slate-300',
+};
 
+const mapStatusTone = (status) => {
+  switch (status?.toUpperCase()) {
+    case 'ACTIVE':
+    case 'DISPATCHED':
+    case 'RESOLVED':
+      return 'positive';
+    case 'COMPLETED':
+    case 'DELIVERED':
+    case 'IN_PROGRESS':
+    case 'IN_TRANSIT':
+      return 'info';
+    case 'FAILED':
+    case 'CANCELLED':
+    case 'DELAYED':
+      return 'danger';
+    case 'OPEN':
+    case 'PENDING':
+    case 'PLANNED':
+    case 'ONGOING':
+      return 'warning';
+    default:
+      return 'neutral';
+  }
+};
+
+const StatusBadge = ({ status, className }) => {
   return (
-    <span className={`px-2.5 py-1 inline-flex text-xs font-medium rounded-full border ${getStatusStyles(status)}`}>
+    <span
+      className={clsx(
+        'inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]',
+        styles[mapStatusTone(status)],
+        className
+      )}
+    >
       {status}
     </span>
   );

@@ -5,6 +5,9 @@ import useCitizenStore from '../../store/citizenStore';
 import DashboardLayout from '../../components/DashboardLayout';
 import { Map, Navigation, Globe, AlertTriangle, FileText, Activity, MapPin } from 'lucide-react';
 import { getAreaProjects, getNearbyProjects, getAllProjects } from '../../services/projectService';
+import Card from '../../components/Card';
+import StatusBadge from '../../components/StatusBadge';
+import { Link } from 'react-router-dom';
 
 export default function CitizenDashboard() {
   const navigate = useNavigate();
@@ -13,8 +16,9 @@ export default function CitizenDashboard() {
   const [stats, setStats] = useState({
     areaProjects: 0,
     nearbyProjects: 0,
-    totalProjects: 0
+    totalProjects: 0,
   });
+  const [districtProjects, setDistrictProjects] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,9 +26,9 @@ export default function CitizenDashboard() {
       try {
         const [area, all] = await Promise.all([
           user?.district && user?.city ? getAreaProjects(user.district, user.city) : Promise.resolve({ projects: [] }),
-          getAllProjects()
+          getAllProjects(),
         ]);
-        
+
         let nearby = { projects: [] };
         const lat = userLocation?.latitude || user?.latitude;
         const lng = userLocation?.longitude || user?.longitude;
@@ -35,10 +39,11 @@ export default function CitizenDashboard() {
         setStats({
           areaProjects: area.projects?.length || 0,
           nearbyProjects: nearby.projects?.length || 0,
-          totalProjects: all.projects?.length || 0
+          totalProjects: all.projects?.length || 0,
         });
+        setDistrictProjects((area.projects || []).slice(0, 3));
       } catch (error) {
-        console.error("Failed to fetch stats", error);
+        console.error('Failed to fetch stats', error);
       } finally {
         setLoading(false);
       }
@@ -48,126 +53,142 @@ export default function CitizenDashboard() {
   }, [user, userLocation]);
 
   return (
-    <DashboardLayout 
-      title="Citizen Dashboard" 
-      roleName="Citizen" 
-      badgeColorClass="border-emerald-500/30 text-emerald-400" 
-    >
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-8 mb-8 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl -mr-20 -mt-20"></div>
-        <div className="relative z-10">
-          <h2 className="text-2xl font-bold text-zinc-100 mb-2">Welcome back, {user?.name}!</h2>
-          <p className="text-zinc-400 max-w-2xl">
-            InfraTrust is committed to transparency. Track ongoing and completed public infrastructure projects in your area, view material costs, and report issues directly to the authorities.
+    <DashboardLayout title="Citizen Dashboard" roleName="Citizen" badgeColorClass="border-emerald-300/20 bg-emerald-400/10 text-emerald-100">
+      <section className="relative mb-8 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 shadow-[0_24px_60px_rgba(2,6,23,0.32)] backdrop-blur-xl sm:p-8">
+        <div className="aurora-spot right-[-6%] top-[-12%] h-56 w-56 bg-emerald-300/20" />
+        <div className="relative z-10 max-w-3xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-200/80">Transparency Network</p>
+          <h2 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">Welcome back, {user?.name}!</h2>
+          <p className="mt-4 text-sm leading-7 text-slate-300 sm:text-base">
+            Track infrastructure work around you, inspect public project details, and raise issues through a cleaner citizen-facing view.
           </p>
-          
+
           {user?.city && user?.district && (
-            <div className="mt-6 flex items-center gap-2 text-sm text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-lg inline-flex">
-              <MapPin className="w-4 h-4" />
+            <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-emerald-300/18 bg-emerald-400/10 px-4 py-2 text-sm text-emerald-100">
+              <MapPin className="h-4 w-4" />
               Your location: {user.city}, {user.district}, {user.state}
             </div>
           )}
         </div>
-      </div>
+      </section>
 
-      <h3 className="text-lg font-semibold text-zinc-200 mb-4 flex items-center gap-2">
-        <Activity className="w-5 h-5 text-emerald-500" />
+      <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-100">
+        <Activity className="h-5 w-5 text-emerald-200" />
         Quick Overview
       </h3>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div 
-          onClick={() => navigate('/citizen/projects', { state: { tab: 'area' } })}
-          className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 flex flex-col justify-between hover:bg-zinc-800/50 hover:border-zinc-700 transition-all cursor-pointer group"
-        >
-          <div className="flex justify-between items-start mb-4">
-            <div className="p-3 bg-blue-500/10 rounded-lg text-blue-400 group-hover:bg-blue-500/20 transition-colors">
-              <Map className="w-6 h-6" />
+      <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
+        {[
+          {
+            key: 'area',
+            title: 'Projects in Your Area',
+            subtitle: 'Based on your registered city and district',
+            icon: Map,
+            tone: 'text-sky-200',
+            value: stats.areaProjects,
+          },
+          {
+            key: 'nearby',
+            title: 'Nearby Projects',
+            subtitle: 'Within 20km of your GPS location',
+            icon: Navigation,
+            tone: 'text-emerald-200',
+            value: stats.nearbyProjects,
+          },
+          {
+            key: 'all',
+            title: 'All India Projects',
+            subtitle: 'National infrastructure tracking',
+            icon: Globe,
+            tone: 'text-indigo-200',
+            value: stats.totalProjects,
+          },
+        ].map((item) => (
+          <button
+            key={item.key}
+            type="button"
+            onClick={() => navigate('/citizen/projects', { state: { tab: item.key } })}
+            className="glass-panel surface-hover group flex flex-col justify-between rounded-[1.75rem] p-6 text-left"
+          >
+            <div className="mb-6 flex items-start justify-between gap-4">
+              <div className={`rounded-[1.2rem] border border-white/10 bg-white/6 p-3 ${item.tone}`}>
+                <item.icon className="h-6 w-6" />
+              </div>
+              {loading ? (
+                <div className="shimmer-line h-9 w-14 rounded-xl" />
+              ) : (
+                <span className="text-4xl font-semibold tracking-tight text-slate-50">{item.value}</span>
+              )}
             </div>
-            {loading ? (
-              <div className="animate-pulse bg-zinc-800 h-8 w-12 rounded"></div>
-            ) : (
-              <span className="text-3xl font-bold text-zinc-100">{stats.areaProjects}</span>
-            )}
-          </div>
-          <div>
-            <p className="text-sm text-zinc-400 font-medium group-hover:text-zinc-300 transition-colors">Projects in Your Area</p>
-            <p className="text-xs text-zinc-500 mt-1">Based on your registered city and district</p>
-          </div>
-        </div>
-
-        <div 
-          onClick={() => navigate('/citizen/projects', { state: { tab: 'nearby' } })}
-          className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 flex flex-col justify-between hover:bg-zinc-800/50 hover:border-zinc-700 transition-all cursor-pointer group"
-        >
-          <div className="flex justify-between items-start mb-4">
-            <div className="p-3 bg-emerald-500/10 rounded-lg text-emerald-400 group-hover:bg-emerald-500/20 transition-colors">
-              <Navigation className="w-6 h-6" />
+            <div>
+              <p className="text-sm font-medium text-slate-200">{item.title}</p>
+              <p className="mt-2 text-sm text-slate-400">{item.subtitle}</p>
             </div>
-            {loading ? (
-              <div className="animate-pulse bg-zinc-800 h-8 w-12 rounded"></div>
-            ) : (
-              <span className="text-3xl font-bold text-zinc-100">{stats.nearbyProjects}</span>
-            )}
-          </div>
-          <div>
-            <p className="text-sm text-zinc-400 font-medium group-hover:text-zinc-300 transition-colors">Nearby Projects</p>
-            <p className="text-xs text-zinc-500 mt-1">Within 20km of your GPS location</p>
-          </div>
-        </div>
-
-        <div 
-          onClick={() => navigate('/citizen/projects', { state: { tab: 'all' } })}
-          className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 flex flex-col justify-between hover:bg-zinc-800/50 hover:border-zinc-700 transition-all cursor-pointer group"
-        >
-          <div className="flex justify-between items-start mb-4">
-            <div className="p-3 bg-purple-500/10 rounded-lg text-purple-400 group-hover:bg-purple-500/20 transition-colors">
-              <Globe className="w-6 h-6" />
-            </div>
-            {loading ? (
-              <div className="animate-pulse bg-zinc-800 h-8 w-12 rounded"></div>
-            ) : (
-              <span className="text-3xl font-bold text-zinc-100">{stats.totalProjects}</span>
-            )}
-          </div>
-          <div>
-            <p className="text-sm text-zinc-400 font-medium group-hover:text-zinc-300 transition-colors">All India Projects</p>
-            <p className="text-xs text-zinc-500 mt-1">National infrastructure tracking</p>
-          </div>
-        </div>
+          </button>
+        ))}
       </div>
 
-      <h3 className="text-lg font-semibold text-zinc-200 mb-4 flex items-center gap-2">
-        <AlertTriangle className="w-5 h-5 text-amber-500" />
+      <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-100">
+        <AlertTriangle className="h-5 w-5 text-amber-200" />
         Citizen Action
       </h3>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div 
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <button
+          type="button"
           onClick={() => navigate('/citizen/report')}
-          className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 flex items-center gap-4 hover:bg-zinc-800/50 hover:border-zinc-700 transition-all cursor-pointer group"
+          className="glass-panel surface-hover group flex items-center gap-4 rounded-[1.75rem] p-6 text-left"
         >
-          <div className="p-4 bg-amber-500/10 rounded-full text-amber-500 group-hover:bg-amber-500/20 transition-colors">
-            <AlertTriangle className="w-6 h-6" />
+          <div className="rounded-full border border-amber-300/20 bg-amber-400/10 p-4 text-amber-200">
+            <AlertTriangle className="h-6 w-6" />
           </div>
           <div>
-            <h4 className="text-zinc-100 font-medium group-hover:text-white transition-colors">Report Road Issue</h4>
-            <p className="text-sm text-zinc-500 mt-1">Found a pothole or incomplete work? Report it with a photo.</p>
+            <h4 className="font-medium text-slate-100">Report Road Issue</h4>
+            <p className="mt-1 text-sm text-slate-400">Found a pothole or incomplete work? Report it with a photo.</p>
           </div>
-        </div>
+        </button>
 
-        <div 
+        <button
+          type="button"
           onClick={() => navigate('/citizen/reports')}
-          className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 flex items-center gap-4 hover:bg-zinc-800/50 hover:border-zinc-700 transition-all cursor-pointer group"
+          className="glass-panel surface-hover group flex items-center gap-4 rounded-[1.75rem] p-6 text-left"
         >
-          <div className="p-4 bg-zinc-800 rounded-full text-zinc-400 group-hover:bg-zinc-700 transition-colors">
-            <FileText className="w-6 h-6" />
+          <div className="rounded-full border border-white/10 bg-white/6 p-4 text-slate-200">
+            <FileText className="h-6 w-6" />
           </div>
           <div>
-            <h4 className="text-zinc-100 font-medium group-hover:text-white transition-colors">My Reports</h4>
-            <p className="text-sm text-zinc-500 mt-1">Track the status of issues you have previously reported.</p>
+            <h4 className="font-medium text-slate-100">My Reports</h4>
+            <p className="mt-1 text-sm text-slate-400">Track the status of issues you have previously reported.</p>
           </div>
-        </div>
+        </button>
+      </div>
+
+      <div className="mt-8">
+        <Card title="Projects In Your District" subtitle="Transparency-first view of nearby work, assignments, and estimated cost.">
+          <div className="space-y-4">
+            {districtProjects.length === 0 ? (
+              <p className="text-sm text-slate-400">No district projects available yet.</p>
+            ) : (
+              districtProjects.map((project) => (
+                <Link
+                  key={project.id}
+                  to={`/projects/${project.id}`}
+                  className="block rounded-[1.25rem] border border-white/8 bg-white/[0.03] p-4 transition hover:bg-white/[0.05]"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-slate-100">{project.name}</p>
+                      <p className="mt-1 text-xs text-slate-400">{project.city}, {project.district}</p>
+                      <p className="mt-3 text-xs text-slate-300">Contractor: {project.contractor_name || 'Pending assignment'}</p>
+                      <p className="mt-1 text-xs text-slate-300">Estimated material cost: Rs {Number(project.estimated_budget || 0).toLocaleString()}</p>
+                    </div>
+                    <StatusBadge status={project.status} />
+                  </div>
+                </Link>
+              ))
+            )}
+          </div>
+        </Card>
       </div>
     </DashboardLayout>
   );

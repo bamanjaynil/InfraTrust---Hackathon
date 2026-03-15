@@ -11,8 +11,10 @@ export default function MaterialRequests() {
   const { 
     contractorProjects, 
     materialRequests, 
+    passports,
     fetchContractorProjects, 
     fetchMaterialRequests, 
+    fetchProjectPassports,
     createMaterialRequest,
     updateMaterialRequestStatus,
     loading 
@@ -49,6 +51,10 @@ export default function MaterialRequests() {
     
     setShowForm(false);
     setFormData({ project_id: '', material_type: '', quantity: '', requested_date: '' });
+  };
+
+  const loadPassports = async (projectId) => {
+    await fetchProjectPassports(projectId);
   };
 
   return (
@@ -179,7 +185,7 @@ export default function MaterialRequests() {
                           {req.status}
                         </span>
                       </td>
-                      <td className="py-4">
+                      <td className="py-4 space-y-2">
                         {(!req.status || req.status === 'PENDING') && (
                           <select 
                             className="bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-zinc-200 focus:outline-none focus:border-blue-500 px-2 py-1"
@@ -191,6 +197,14 @@ export default function MaterialRequests() {
                             <option value="REJECTED">Reject</option>
                             <option value="DELIVERED">Delivered</option>
                           </select>
+                        )}
+                        {req.status === 'APPROVED' && (
+                          <button
+                            className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-1 rounded"
+                            onClick={() => loadPassports(req.project_id)}
+                          >
+                            View Passports
+                          </button>
                         )}
                       </td>
                     </tr>
@@ -204,6 +218,41 @@ export default function MaterialRequests() {
             </table>
           </div>
         </Card>
+
+        {passports && passports.length > 0 && (
+          <Card title="Material Passports">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-zinc-800">
+                    <th className="pb-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Passport ID</th>
+                    <th className="pb-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Material</th>
+                    <th className="pb-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Quantity</th>
+                    <th className="pb-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Status</th>
+                    <th className="pb-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider">QR</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800/50">
+                  {passports.map((passport) => (
+                    <tr key={passport.id} className="hover:bg-zinc-800/30 transition-colors">
+                      <td className="py-4 text-sm text-zinc-200">{passport.id}</td>
+                      <td className="py-4 text-sm text-zinc-400">{passport.material_type}</td>
+                      <td className="py-4 text-sm text-zinc-400">{passport.quantity}</td>
+                      <td className="py-4 text-sm">
+                        <span className={`inline-flex px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${passport.status === 'VERIFIED' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-500 border border-amber-500/20'}`}>
+                          {passport.status}
+                        </span>
+                      </td>
+                      <td className="py-4">
+                        <a href={passport.qr_code} target="_blank" rel="noreferrer" className="text-xs text-blue-500 hover:underline">View QR</a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        )}
       </div>
     </DashboardLayout>
   );

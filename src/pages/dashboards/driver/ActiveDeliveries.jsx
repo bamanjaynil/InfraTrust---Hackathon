@@ -17,7 +17,14 @@ export default function ActiveDeliveries() {
 
   const startDelivery = async (id) => {
     await axios.post(`/api/deliveries/${id}/start`);
-    // Refresh deliveries
+    const res = await axios.get(`/api/deliveries/driver/${user.id}`);
+    setDeliveries(res.data.data);
+  };
+
+  const markArrived = async (id) => {
+    await axios.post(`/api/deliveries/${id}/arrive`);
+    const res = await axios.get(`/api/deliveries/driver/${user.id}`);
+    setDeliveries(res.data.data);
   };
 
   return (
@@ -36,8 +43,12 @@ export default function ActiveDeliveries() {
               <tr key={d.id}>
                 <td>{d.id}</td>
                 <td>{d.status}</td>
-                <td>
+                <td className="space-x-2">
                   {d.status === 'ASSIGNED' && <Button onClick={() => startDelivery(d.id)}>Start</Button>}
+                  {d.status === 'IN_TRANSIT' && <Button onClick={() => markArrived(d.id)} className="bg-purple-600 hover:bg-purple-700">Arrived</Button>}
+                  {(d.status === 'ARRIVED' || d.status === 'VERIFIED') && (
+                    <Button onClick={() => window.location.href = `/driver/deliveries/${d.id}`}>Details</Button>
+                  )}
                 </td>
               </tr>
             ))}

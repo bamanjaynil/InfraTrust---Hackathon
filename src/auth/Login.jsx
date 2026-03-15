@@ -13,33 +13,33 @@ import { getRoleRedirectPath } from '../utils/roleRedirect';
 export default function Login() {
   const navigate = useNavigate();
   const setAuth = useAuthStore((state) => state.login);
-  
+
   const [formData, setFormData] = useState({
     role: 'CITIZEN',
     identifier: '',
     password: '',
-    truckPlate: ''
+    truckPlate: '',
   });
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleChange = (e) => {
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     if (error) setError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    
+
     const { role, identifier, password, truckPlate } = formData;
 
     if (!identifier || !password) {
       setError('Please fill in all required fields.');
       return;
     }
-    
+
     if (role === 'DRIVER' && !truckPlate) {
       setError('Truck number plate is required for drivers.');
       return;
@@ -51,9 +51,9 @@ export default function Login() {
         role,
         identifier,
         password,
-        ...(role === 'DRIVER' && { truckPlate })
+        ...(role === 'DRIVER' && { truckPlate }),
       };
-      
+
       const response = await login(credentials);
       setAuth(response.user, response.token);
       navigate(getRoleRedirectPath(response.user.role));
@@ -68,14 +68,14 @@ export default function Login() {
     <AuthLayout title="Sign In" subtitle="Command Center Access">
       <form onSubmit={handleSubmit} className="space-y-5">
         <ErrorMessage message={error} />
-        
-        <div className="space-y-1">
-          <label className="block text-sm font-medium text-zinc-400">Select Role</label>
+
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-slate-300">Select Role</label>
           <select
             name="role"
             value={formData.role}
             onChange={handleChange}
-            className="block w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-zinc-100 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 sm:text-sm"
+            className="block min-h-12 w-full rounded-xl border border-white/10 bg-slate-950/55 px-4 py-3 text-sm text-slate-100 outline-none transition duration-200 focus:border-teal-300/45 focus:bg-slate-950/72 focus:ring-4 focus:ring-teal-400/10"
           >
             <option value="CITIZEN">Citizen</option>
             <option value="DRIVER">Driver</option>
@@ -100,7 +100,7 @@ export default function Login() {
           name="password"
           value={formData.password}
           onChange={handleChange}
-          placeholder="••••••••"
+          placeholder="........"
           required
         />
 
@@ -120,10 +120,16 @@ export default function Login() {
         <Button type="submit" isLoading={loading}>
           Sign In
         </Button>
-        
-        <div className="text-center text-sm text-zinc-500 mt-4">
+
+        <div className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3 text-xs text-slate-400">
+          Demo accounts: `admin@infratrust.com`, `contractor@infratrust.com`, `driver@infratrust.com`, `citizen@infratrust.com`
+          <br />
+          Password for all roles: `demo123`
+        </div>
+
+        <div className="mt-4 text-center text-sm text-slate-400">
           Don't have an account?{' '}
-          <Link to="/register" className="text-emerald-400 hover:text-emerald-300 transition-colors">
+          <Link to="/register" className="font-medium text-teal-200 transition-colors hover:text-white">
             Register as Citizen
           </Link>
         </div>

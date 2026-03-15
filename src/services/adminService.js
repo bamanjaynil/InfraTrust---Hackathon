@@ -1,4 +1,5 @@
 import apiClient from './apiClient';
+import { approveProjectApplication } from './projectService';
 
 export const getAllProjects = async (search = '') => {
   const response = await apiClient.get('/projects', { params: { search } });
@@ -30,6 +31,11 @@ export const getDeliveries = async () => {
   return response.data;
 };
 
+export const assignDriverToDelivery = async (delivery_id, driver_id) => {
+  const response = await apiClient.post('/deliveries/assign-driver', { delivery_id, driver_id });
+  return response.data;
+};
+
 export const getContractors = async () => {
   const response = await apiClient.get('/contractors');
   return response.data;
@@ -37,6 +43,11 @@ export const getContractors = async () => {
 
 export const updateProjectStatus = async (id, status) => {
   const response = await apiClient.patch(`/projects/${id}/status`, { status });
+  return response.data;
+};
+
+export const createMaterialPassport = async (payload) => {
+  const response = await apiClient.post('/passports/create', payload);
   return response.data;
 };
 
@@ -48,7 +59,9 @@ const adminService = {
   updateReportStatus,
   getDeliveries,
   getContractors,
-  updateProjectStatus
+  updateProjectStatus,
+  approveProjectApplication,
+  createMaterialPassport
 };
 
 export default adminService;

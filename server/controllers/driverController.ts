@@ -1,19 +1,23 @@
 import { Request, Response } from 'express';
+import bcrypt from 'bcrypt';
 import db from '../db.js';
 
-export const createDriver = (req: Request, res: Response) => {
+export const createDriver = async (req: Request, res: Response) => {
   try {
     const { name, email, phone, truck_plate } = req.body;
-    
-    // In a real app, we would hash the password and create a user
+    if (!name || !email || !phone || !truck_plate) {
+      return res.status(400).json({ status: 'error', message: 'name, email, phone, and truck_plate are required' });
+    }
+
     const id = `driver-${Date.now()}`;
+    const passwordHash = await bcrypt.hash('demo123', 10);
     
     const stmt = db.prepare(`
-      INSERT INTO users (id, name, email, role, password_hash)
-      VALUES (?, ?, ?, 'DRIVER', 'hash')
+      INSERT INTO users (id, name, email, phone, role, password_hash)
+      VALUES (?, ?, ?, ?, 'DRIVER', ?)
     `);
     
-    stmt.run(id, name, email);
+    stmt.run(id, name, email, phone, passwordHash);
     
     const profileStmt = db.prepare(`
       INSERT INTO driver_profiles (id, user_id, phone, truck_plate)

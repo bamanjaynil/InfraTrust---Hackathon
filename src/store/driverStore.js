@@ -62,6 +62,16 @@ const useDriverStore = create((set, get) => ({
     }
   },
 
+  verifyDelivery: async (passport_id, arrival_lat, arrival_lng) => {
+    set({ loading: true, error: null });
+    try {
+      await driverService.verifyDelivery(passport_id, arrival_lat, arrival_lng);
+      set({ loading: false });
+    } catch (err) {
+      set({ error: err.message, loading: false });
+    }
+  },
+
   updateTracking: async (trackingData) => {
     try {
       await driverService.sendTrackingData(trackingData);

@@ -1,21 +1,28 @@
 import React from 'react';
+import { clsx } from 'clsx';
+
+const tones = {
+  emerald: 'from-emerald-400/25 via-teal-400/12 to-transparent text-emerald-200',
+  blue: 'from-sky-400/25 via-blue-400/12 to-transparent text-sky-200',
+  purple: 'from-indigo-400/25 via-violet-400/12 to-transparent text-indigo-200',
+  amber: 'from-amber-300/25 via-orange-400/10 to-transparent text-amber-100',
+  red: 'from-rose-400/25 via-rose-500/10 to-transparent text-rose-200',
+};
 
 const StatCard = ({ title, value, icon: Icon, color = 'emerald' }) => {
-  const colors = {
-    emerald: 'text-emerald-500 bg-emerald-500/10',
-    blue: 'text-blue-500 bg-blue-500/10',
-    purple: 'text-purple-500 bg-purple-500/10',
-    amber: 'text-amber-500 bg-amber-500/10',
-    red: 'text-red-500 bg-red-500/10',
-  };
-
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 hover:border-zinc-700 transition-colors">
-      <div className={`p-2 w-fit rounded-lg mb-4 ${colors[color]}`}>
-        <Icon className="w-5 h-5" />
+    <div className="glass-panel surface-hover relative overflow-hidden rounded-[1.5rem] p-6">
+      <div className={clsx('absolute inset-x-0 top-0 h-24 bg-gradient-to-br', tones[color])} />
+      <div className="relative flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium text-slate-400">{title}</p>
+          <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-50">{value}</p>
+        </div>
+        <div className="soft-ring rounded-2xl border border-white/10 bg-white/6 p-3 text-slate-100">
+          <Icon className="h-5 w-5" />
+        </div>
       </div>
-      <p className="text-sm text-zinc-400 font-medium">{title}</p>
-      <p className="text-2xl font-bold text-zinc-100 mt-1">{value}</p>
+      <div className="relative mt-5 h-px bg-gradient-to-r from-white/0 via-white/12 to-white/0" />
     </div>
   );
 };

@@ -1,11 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import DashboardLayout from '../../../components/DashboardLayout';
-import { FileText, Truck, Search, Calendar } from 'lucide-react';
+import { Search, Calendar } from 'lucide-react';
 import useDriverStore from '../../../store/driverStore';
 import { useAuthStore } from '../../../store/authStore';
 import Card from '../../../components/Card';
 import StatusBadge from '../../../components/StatusBadge';
-import { useState } from 'react';
 
 export default function DriverHistory() {
   const { user } = useAuthStore();
@@ -18,19 +17,19 @@ export default function DriverHistory() {
     }
   }, [user?.id, fetchDriverDeliveries]);
 
-  const completedDeliveries = Array.isArray(driverDeliveries) 
-    ? driverDeliveries.filter(d => d.status === 'COMPLETED')
+  const completedDeliveries = Array.isArray(driverDeliveries)
+    ? driverDeliveries.filter((delivery) => delivery.status === 'COMPLETED' || delivery.status === 'VERIFIED')
     : [];
 
-  const filteredDeliveries = completedDeliveries.filter(d => 
-    d.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    d.project_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    d.material_type?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredDeliveries = completedDeliveries.filter((delivery) =>
+    delivery.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    delivery.project_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    delivery.material_type?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-    <DashboardLayout 
-      title="Delivery History" 
+    <DashboardLayout
+      title="Delivery History"
       roleName="Driver"
       badgeColorClass="bg-blue-500/10 text-blue-500 border-blue-500/20"
     >
@@ -38,9 +37,9 @@ export default function DriverHistory() {
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
           <div className="relative w-full sm:w-96">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-            <input 
-              type="text" 
-              placeholder="Search history..." 
+            <input
+              type="text"
+              placeholder="Search history..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full bg-zinc-900 border border-zinc-800 rounded-lg py-2 pl-10 pr-4 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 transition-colors"
@@ -51,7 +50,7 @@ export default function DriverHistory() {
         <Card noPadding>
           {loading ? (
             <div className="p-12 text-center">
-              <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+              <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4" />
               <p className="text-zinc-400 text-sm">Loading history...</p>
             </div>
           ) : error ? (
@@ -89,25 +88,25 @@ export default function DriverHistory() {
                           <p className="text-sm text-zinc-400">{delivery.material_type}</p>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-zinc-400">
-                          {delivery.volume} m³
+                          {delivery.volume} units
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex flex-col">
                             <span className="text-sm text-zinc-300">
-                              {delivery.arrival_time ? new Date(delivery.arrival_time).toLocaleDateString() : 'N/A'}
+                              {delivery.arrived_at ? new Date(delivery.arrived_at).toLocaleDateString() : 'N/A'}
                             </span>
                             <span className="text-xs text-zinc-500">
-                              {delivery.arrival_time ? new Date(delivery.arrival_time).toLocaleTimeString() : ''}
+                              {delivery.arrived_at ? new Date(delivery.arrived_at).toLocaleTimeString() : ''}
                             </span>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex flex-col">
                             <span className="text-sm text-zinc-300">
-                              {delivery.completion_time ? new Date(delivery.completion_time).toLocaleDateString() : 'N/A'}
+                              {delivery.completed_at ? new Date(delivery.completed_at).toLocaleDateString() : 'N/A'}
                             </span>
                             <span className="text-xs text-zinc-500">
-                              {delivery.completion_time ? new Date(delivery.completion_time).toLocaleTimeString() : ''}
+                              {delivery.completed_at ? new Date(delivery.completed_at).toLocaleTimeString() : ''}
                             </span>
                           </div>
                         </td>
