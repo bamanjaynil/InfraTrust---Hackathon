@@ -1,3 +1,10 @@
+
+This web app requires authentication so use these emails only and passwrod is same for all which is "demo123".
+
+Emails : for contractor : contractor@infratrust.com
+        for citizen : citizen@infratrust.com
+        for admin : admin@infratrust.com
+        
 # 🚧 InfraTrust — Transparent Infrastructure Monitoring System
 
 InfraTrust is a smart infrastructure monitoring platform designed to bring **transparency, accountability, and trust** to public road construction projects.
@@ -249,4 +256,9 @@ Computer Science Student
 # 📜 License
 
 This project was created for educational and hackathon purposes.
+
+Here are some of pictures of our working app : 
+
+1. Log in Page
+<img width="1670" height="844" alt="image" src="https://github.com/user-attachments/assets/0562a5c5-6939-4424-8365-8073f3048d64" />
 
