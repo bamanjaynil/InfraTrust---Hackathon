@@ -261,4 +261,12 @@ Here are some of pictures of our working app :
 
 1. Log in Page
 <img width="1670" height="844" alt="image" src="https://github.com/user-attachments/assets/0562a5c5-6939-4424-8365-8073f3048d64" />
+2. Citizens can see all the details of the project and also they can see how much money is to be used on which project and when the project is started and when it is supposed to finish.
+   <img width="1886" height="852" alt="image" src="https://github.com/user-attachments/assets/eaa37c3a-a4f4-43b4-bdfe-b00800f83303" />
+3.Citizens can report a issue regarding the road which will be directly visible to the Admin/PWD.
+<img width="1880" height="868" alt="image" src="https://github.com/user-attachments/assets/e051ad8c-297c-4245-8dff-486c40960116" />
+4. The below is admin's dashboard. Uploading all the screenshots regarding this is very difficult for our team so we are just upload one screenshot for overview, although it is suggested to clone this repo and use npm modules to run it on your system.
+   <img width="1887" height="857" alt="image" src="https://github.com/user-attachments/assets/c98e7ea2-7bb6-4047-8612-361b9d5c19ff" />
+
+
 
